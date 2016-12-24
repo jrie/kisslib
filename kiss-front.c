@@ -2,12 +2,16 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "kisslib.h" // read_pdf, read_mobi, read_chm, read_epub
 
 // GTK3
 #include <gtk/gtk.h>
 #include <gio/gio.h>
+
+//SQLite3
+#include <sqlite3.h>
 
 //GNU
 #include <dirent.h>
@@ -17,14 +21,17 @@
 void run(GtkApplication*, gpointer);
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 
-bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*);
-int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*);
+bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
+int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
 
 void menuhandle_meQuit(GtkMenuItem*, gpointer);
 void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
 
 void fileChooser_close(GtkButton*, gpointer);
 void fileChooser_importFiles(GtkButton*, gpointer);
+
+// Db related
+int add_db_data_to_store(void*, int, char**, char**);
 
 //------------------------------------------------------------------------------
 enum {
@@ -39,12 +46,101 @@ int main (int argc, char *argv[]) {
   GtkApplication *app;
   int status;
 
+  // SQLite3 code
+  sqlite3 *db;
+  char *dbErrorMsg = 0;
+
+  int rc = sqlite3_open("kisslib.db", &db);
+
+  if (rc) {
+    sqlite3_close(db);
+    printf("Error opening sqlite3 database \"kisslib.db\" file. Exiting.");
+    return 1;
+  } else {
+    rc = sqlite3_exec(db, " \
+      CREATE TABLE IF NOT EXISTS 'ebook_collection' ( \
+        'id' INTEGER PRIMARY KEY ASC, \
+        'format' INTEGER, \
+        'author' TEXT, \
+        'title' TEXT, \
+        'path' TEXT, \
+        'filename' TEXT \
+      );", NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      printf("SQL error: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+      sqlite3_close(db);
+
+      if (rc == SQLITE_READONLY) {
+        printf("Error opening sqlite3 database for writing. Exiting.");
+      }
+
+      return 1;
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
   app = gtk_application_new("net.dwrox.kiss", G_APPLICATION_HANDLES_OPEN);
   g_signal_connect(app, "activate", G_CALLBACK (run), NULL);
+  g_object_set_data(G_OBJECT(app), "db", db);
   status = g_application_run(G_APPLICATION(app), argc, argv);
   g_object_unref(app);
 
+  // Close db
+  sqlite3_close(db);
+
   return status;
+}
+
+int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNames) {
+  GtkListStore *store = GTK_LIST_STORE(dataStore);
+  GtkTreeIter iter;
+
+  char formatString[5];
+  char *author = NULL;
+  char *title = NULL;
+
+  for(int i = 0; i < argc; i++) {
+    if (strcmp(columnNames[i], "format") == 0) {
+      switch(atoi(argv[i])) {
+        case 1:
+          strcpy(formatString, "pdf");
+          break;
+        case 2:
+          strcpy(formatString, "epub");
+          break;
+        case 3:
+          strcpy(formatString, "mobi");
+          break;
+        case 4:
+          strcpy(formatString, "chm");
+          break;
+        default:
+          break;
+      }
+    } else if (strcmp(columnNames[i], "author") == 0) {
+      author = calloc((strlen(argv[i]) + 1), sizeof(char));
+      strcpy(author, argv[i]);
+
+    } else if (strcmp(columnNames[i], "title") == 0) {
+      title = calloc((strlen(argv[i]) + 1), sizeof(char));
+      strcpy(title, argv[i]);
+    }
+  }
+
+  gtk_list_store_append(store, &iter);
+  gtk_list_store_set(store, &iter,
+    FORMAT_COLUMN, formatString,
+    AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
+    TITLE_COLUMN, title,
+    -1
+  );
+
+  free(author);
+  free(title);
+
+  return 0;
 }
 
 void run(GtkApplication *app, gpointer user_data) {
@@ -64,6 +160,9 @@ void run(GtkApplication *app, gpointer user_data) {
   grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(window), grid);
 
+
+  //----------------------------------------------------------------------------
+
   GtkListStore *dataStore = gtk_list_store_new(
     N_COLUMNS,
     G_TYPE_STRING,
@@ -78,6 +177,7 @@ void run(GtkApplication *app, gpointer user_data) {
     TITLE_COLUMN, "PDFs from day one, more or less ;)",
     -1
   );
+
 
   gtk_list_store_append(dataStore, &iter);
   gtk_list_store_set(dataStore, &iter,
@@ -104,6 +204,21 @@ void run(GtkApplication *app, gpointer user_data) {
   );
 
 
+  //----------------------------------------------------------------------------
+  // Read entries from db into list store
+  //----------------------------------------------------------------------------
+  sqlite3* db = g_object_get_data(G_OBJECT(app), "db");
+
+  char *dbErrorMsg = 0;
+
+  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM 'ebook_collection';", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    printf("SQL error: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  //----------------------------------------------------------------------------
 
   GtkWidget *menuBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
@@ -139,6 +254,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   //gtk_grid_attach(GTK_GRID(grid), ebookList, 0, 0, 1, 1);
   g_signal_connect(ebookList, "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
+  g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
 
@@ -198,6 +314,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(meImportFiles), "statusBar", statusBar);
   g_object_set_data(G_OBJECT(meImportFiles), "progressBar", progressBar);
   g_object_set_data(G_OBJECT(meImportFiles), "treeview", ebookList);
+  g_object_set_data(G_OBJECT(meImportFiles), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_signal_connect(G_OBJECT(meImportFiles), "activate", G_CALLBACK(menuhandle_meImportFiles), NULL);
 
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
@@ -276,6 +393,7 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set_data(G_OBJECT(openButton), "progressBar", g_object_get_data(G_OBJECT(menuitem), "progressBar"));
   g_object_set_data(G_OBJECT(openButton), "statusBar", g_object_get_data(G_OBJECT(menuitem), "statusBar"));
   g_object_set_data(G_OBJECT(openButton), "treeview", g_object_get_data(G_OBJECT(menuitem), "treeview"));
+  g_object_set_data(G_OBJECT(openButton), "db", g_object_get_data(G_OBJECT(menuitem), "db"));
   g_signal_connect(G_OBJECT(openButton), "clicked", G_CALLBACK(fileChooser_importFiles), NULL);
 
   //gtk_window_set_keep_above(GTK_WINDOW(fileChooserWindow), true);
@@ -290,12 +408,18 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 
+//------------------------------------------------------------------------------
 
 void fileChooser_close(GtkButton *button, gpointer user_data) {
   gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
 }
 
+
+//------------------------------------------------------------------------------
+
 void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
+  // SQLite3 code
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
   GtkWidget *rootWindow = g_object_get_data(G_OBJECT(button), "rootWindow");
 
   GtkWidget *fileChooser = g_object_get_data(G_OBJECT(button), "fileChooser");
@@ -333,7 +457,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
     if (dp != NULL) {
       // Its a folder most likely
-      int retVal = read_out_path(item->data, statusBar, contextId, progressBar, i, filesToAdd, model);
+      int retVal = read_out_path(item->data, statusBar, contextId, progressBar, i, filesToAdd, model, db);
 
       if (retVal != -1) {
         filesAdded += retVal;
@@ -342,7 +466,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
       closedir(dp);
     } else if (fileType != NULL && strlen(fileType) < 6) {
-      if (read_and_add_file_to_model(item->data, true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model)) {
+      if (read_and_add_file_to_model(item->data, true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db)) {
         ++filesAdded;
       } else {
         ++filesError;
@@ -386,6 +510,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 //------------------------------------------------------------------------------
 
 gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gint y, GtkSelectionData *selData, guint time, gpointer user_data) {
+  sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
   GtkWidget *statusBar = g_object_get_data(G_OBJECT(widget), "status");
   GtkWidget *progressBar = g_object_get_data(G_OBJECT(widget), "progress");
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
@@ -413,7 +538,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     }
 
     for (int i = 0; uriList && uriList[i]; ++i) {
-      char *cleanedPath = (char*) calloc(sizeof(char), strlen(&uriList[i][7]) + 1);
+      char *cleanedPath = (char*) calloc(strlen(&uriList[i][7]) + 1, sizeof(char));
       char *pathPart = strstr(&uriList[i][7], "%20");
       if (pathPart == NULL) {
         strcpy(cleanedPath, &uriList[i][7]);
@@ -434,7 +559,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
       DIR *dp = opendir(cleanedPath);
       if (dp != NULL) {
         // Its a folder most likely
-        int retVal = read_out_path((char*) cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model);
+        int retVal = read_out_path((char*) cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model, db);
 
         if (retVal != -1) {
           filesAdded += retVal;
@@ -443,7 +568,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
 
         free(cleanedPath);
         closedir(dp);
-      } else if (read_and_add_file_to_model(uriList[i], true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model)) {
+      } else if (read_and_add_file_to_model(uriList[i], true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db)) {
         ++filesAdded;
       } else {
         ++filesError;
@@ -486,9 +611,10 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   return true;
 }
 
+
 //------------------------------------------------------------------------------
 
-bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget* statusBar, unsigned int contextId, bool showProgress, GtkWidget *progressBar, unsigned int index, unsigned int filesToAdd, bool addFileToModel, GtkTreeModel *model) {
+bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget* statusBar, unsigned int contextId, bool showProgress, GtkWidget* progressBar, unsigned int index, unsigned int filesToAdd, bool addFileToModel, GtkTreeModel *model, sqlite3* db) {
   GtkTreeIter iter;
 
   char* fileType = strrchr(inputFileName, '.');
@@ -510,11 +636,9 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
   char* author = NULL;
   char* title = NULL;
 
-  bool isFile = false;
-
   //----------------------------------------------------------------------------
 
-  char *cleanedPath = (char*) calloc(sizeof(char), strlen(inputFileName) + 1);
+  char *cleanedPath = (char*) calloc(strlen(inputFileName) + 1, sizeof(char));
   char *pathPart = strstr(inputFileName, "%20");
   if (pathPart == NULL) {
     strcpy(cleanedPath, inputFileName);
@@ -534,7 +658,7 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
 
   //----------------------------------------------------------------------------
 
-  char* cleanedFileName = (char*) calloc(sizeof(char), strlen(fileName) + 1);
+  char* cleanedFileName = (char*) calloc(strlen(fileName) + 1, sizeof(char));
   if (fileName != NULL && fileName[0] != '\0') {
     pathPart = strstr(fileName, "%20");
     if (pathPart == NULL) {
@@ -552,8 +676,6 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
 
       strncat(cleanedFileName, &fileName[pathSize], strlen(fileName)-pathSize-strlen(fileType));
     }
-  } else {
-    isFile = false;
   }
 
   // Update the UI ---------------------------------------------------------
@@ -569,32 +691,38 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
 
   fileInfo fileData = {NULL, NULL, 0};
 
+  int format = 0;
+
   if (fileType != NULL) {
     bool retVal = false;
 
     if (strcmp(lowerFiletype, ".pdf") == 0) {
-      isFile = true;
+      format = 1;
+
       if (cleanedPath[0] != '/') {
         retVal = read_pdf(&cleanedPath[7], &fileData);
       } else {
         retVal = read_pdf(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".epub") == 0) {
-      isFile = true;
+      format = 2;
+
       if (cleanedPath[0] != '/') {
         retVal = read_epub(&cleanedPath[7], &fileData);
       } else {
         retVal = read_epub(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".mobi") == 0) {
-      isFile = true;
+      format = 3;
+
       if (cleanedPath[0] != '/') {
         retVal = read_mobi(&cleanedPath[7], &fileData);
       } else {
         retVal = read_mobi(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".chm") == 0) {
-      isFile = true;
+      format = 4;
+
       if (cleanedPath[0] != '/') {
         retVal = read_chm(&cleanedPath[7], &fileData);
       } else {
@@ -603,6 +731,7 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
     }
 
     if (!retVal) {
+      printf("Error reading out file \"%s\"", cleanedPath);
       free(cleanedFileName);
       free(cleanedPath);
       return false;
@@ -630,18 +759,59 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
     }
   }
 
-  if (isFile && strlen(fileType) > 3) {
-    gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-    gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-      FORMAT_COLUMN, &fileType[1],
-      AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
-      TITLE_COLUMN, title == NULL ? cleanedFileName : title,
-      -1
+  if (format != 0) {
+
+    //--------------------------------------------------------------------------
+    char *dbErrorMsg = 0;
+    bool dbOkay = true;
+
+    int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title)) \
+                       + (author == NULL ? 7 : strlen(author)) \
+                       + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
+
+    char *dbStm = (char*) calloc((54 + additionSize), sizeof(char));
+    sprintf(dbStm, "INSERT INTO 'ebook_collection' VALUES (NULL,%d,'%s','%s','%s','%s');", \
+      format, \
+      author == NULL ? "Unknown" : author, \
+      title == NULL ? cleanedFileName : title, \
+      &cleanedPath[7],
+      cleanedFileName
     );
 
-    if (showStatus && statusBar != NULL) {
+    int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      dbOkay = false;
+      if (rc == SQLITE_FULL) {
+        printf("Cannot add data to the database, the (temporary) disk is full.");
+      } else {
+        printf("Unknown SQL error: %s\n", dbErrorMsg);
+      }
+
+      sqlite3_free(dbErrorMsg);
+    }
+
+    free(dbStm);
+
+    //--------------------------------------------------------------------------
+    if (dbOkay) {
+      gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+      gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+        FORMAT_COLUMN, &fileType[1],
+        AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
+        TITLE_COLUMN, title == NULL ? cleanedFileName : title,
+        -1
+      );
+
+      if (showStatus && statusBar != NULL) {
+        message[0] = '\0';
+        strcat(message, "[ADDED] ");
+        strcat(message, cleanedFileName);
+        gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+        gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
+      }
+    } else if (showStatus && statusBar != NULL) {
       message[0] = '\0';
-      strcat(message, "[ADDED] ");
+      strcat(message, "[ERROR IMPORTING INTO DB] ");
       strcat(message, cleanedFileName);
       gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
       gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
@@ -654,7 +824,7 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
         gtk_progress_bar_pulse(GTK_PROGRESS_BAR(progressBar));
       }
     }
-
+    //--------------------------------------------------------------------------
     // Cleanup
     free(fileData.types);
     for (int i = 0; i < fileData.count; ++i) {
@@ -668,6 +838,7 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
     free(cleanedFileName);
     free(cleanedPath);
 
+    //--------------------------------------------------------------------------
     gtk_main_iteration_do(true);
     return true;
   }
@@ -676,7 +847,7 @@ bool read_and_add_file_to_model(char * inputFileName, bool showStatus, GtkWidget
 }
 
 
-int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, GtkWidget *progressBar, unsigned int i, unsigned int filesToAdd, GtkTreeModel *model) {
+int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, GtkWidget *progressBar, unsigned int i, unsigned int filesToAdd, GtkTreeModel *model, sqlite3* db) {
   char pathRoot[strlen(pathRootData)+1];
   strcpy(pathRoot, pathRootData);
 
@@ -700,7 +871,7 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
         strcat(completePath, ep->d_name);
         completePath[pathSize-1] = '\0';
 
-        filesAdded += read_out_path(completePath, statusBar, contextId, progressBar, i, filesToAdd, model);
+        filesAdded += read_out_path(completePath, statusBar, contextId, progressBar, i, filesToAdd, model, db);
         free(completePath);
       } else if (ep->d_type == 8) {
         char *folderFileType = strrchr(ep->d_name, '.');
@@ -724,7 +895,7 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
           completePath[pathSize-1] = '\0';
 
           if (strcmp(folderLowerFileType, ".pdf") == 0 || strcmp(folderLowerFileType, ".epub") == 0 || strcmp(folderLowerFileType, ".mobi") == 0 || strcmp(folderLowerFileType, ".chm") == 0) {
-            if (read_and_add_file_to_model(completePath, true, statusBar, contextId, false, progressBar, i, filesToAdd, true, model)) {
+            if (read_and_add_file_to_model(completePath, true, statusBar, contextId, false, progressBar, i, filesToAdd, true, model, db)) {
               gtk_progress_bar_pulse(GTK_PROGRESS_BAR(progressBar));
               ++filesAdded;
             }
