@@ -25,6 +25,8 @@ Supported file types are:
 * gcc - to compile
 
 ### Compiling
-Run:
+Compile using gcc:
 
 ""gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
+
+And then run "./kisslib" to open kisslib.
