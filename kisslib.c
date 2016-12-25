@@ -512,7 +512,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   }
 
   fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
-  fileData->entries[fileData->count] = malloc(sizeof(char) * (readBufferPos+9));
+  fileData->entries[fileData->count] = malloc(sizeof(char) * strlen(title));
   strcpy(fileData->entries[fileData->count], title);
 
   fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
