@@ -21,6 +21,8 @@
 void run(GtkApplication*, gpointer);
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
+gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
+gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
 
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
@@ -34,15 +36,23 @@ void fileChooser_importFiles(GtkButton*, gpointer);
 
 // Db related
 int add_db_data_to_store(void*, int, char**, char**);
+int add_fileName_from_db(void*, int, char**, char**);
 
 //------------------------------------------------------------------------------
 enum {
+  STARTUP_COLUMN,
   FORMAT_COLUMN,
   AUTHOR_COLUMN,
   TITLE_COLUMN,
   N_COLUMNS
 };
 
+typedef struct dbHandlingData {
+  GtkTreeModel *model;
+  GtkListStore *store;
+  GtkTreeIter *iter;
+  gchar **data;
+} dbHandlingData;
 
 //------------------------------------------------------------------------------
 int main (int argc, char *argv[]) {
@@ -96,6 +106,15 @@ int main (int argc, char *argv[]) {
   sqlite3_close(db);
 
   return status;
+}
+
+int add_fileName_from_db(void* dbHandleData, int argc, char **argv, char **columnNames) {
+  if (argc == 1) {
+    struct dbHandlingData *dbData = (dbHandlingData*) dbHandleData;
+    gtk_list_store_set(dbData->store, dbData->iter, TITLE_COLUMN, argv[0], -1);
+  }
+
+  return 0;
 }
 
 int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNames) {
@@ -170,6 +189,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkListStore *dataStore = gtk_list_store_new(
     N_COLUMNS,
+    GDK_TYPE_PIXBUF,
     G_TYPE_STRING,
     G_TYPE_STRING,
     G_TYPE_STRING
@@ -216,7 +236,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   char *dbErrorMsg = 0;
 
-  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM 'ebook_collection';", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     printf("SQL error: %s\n", dbErrorMsg);
@@ -229,13 +249,15 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
 
   ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
-  //g_object_unref(dataStore);
 
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
-  // TODO: Add reorder option
+  gtk_widget_set_hexpand(ebookList, true);
+  gtk_widget_set_vexpand(ebookList, true);
+
+  // NOTE: Add reorder option?
   //gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ebookList), true);
 
-  gtk_tree_view_set_search_column(GTK_TREE_VIEW(ebookList), 2);
+  gtk_tree_view_set_search_column(GTK_TREE_VIEW(ebookList), TITLE_COLUMN);
   gtk_drag_dest_set(ebookList, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
   gtk_drag_dest_add_uri_targets(ebookList);
 
@@ -249,9 +271,6 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scrollWin), 400);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollWin), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
   gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(scrollWin), false);
-  gtk_widget_set_hexpand(ebookList, true);
-  gtk_widget_set_vexpand(ebookList, true);
-
 
   GtkWidget* progressRevealer = gtk_revealer_new();
   gtk_revealer_set_transition_duration(GTK_REVEALER(progressRevealer), 2250);
@@ -269,7 +288,6 @@ void run(GtkApplication *app, gpointer user_data) {
   guint contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Welcome to KISS Ebook");
 
-  //gtk_grid_attach(GTK_GRID(grid), ebookList, 0, 0, 1, 1);
   g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
   g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
@@ -278,34 +296,61 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
   g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
 
+  GtkIconTheme *iconTheme = gtk_icon_theme_get_default();
+  GError *iconError = NULL;
+  GtkIconInfo *openIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
+  GdkPixbuf *icon = gtk_icon_info_load_icon(openIcon, &iconError);
+
+  if (iconError != NULL) {
+    printf("Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
+    g_error_free(iconError);
+  } else {
+    GtkCellRenderer *imageRenderer = gtk_cell_renderer_pixbuf_new();
+    g_object_set(G_OBJECT(imageRenderer), "pixbuf", icon, NULL);
+    gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
+
+    column = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
+    gtk_tree_view_column_set_resizable(column, false);
+    gtk_tree_view_column_set_min_width(column, 50);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
+
+    g_object_unref(icon);
+  }
+
+
   ebookListRender = gtk_cell_renderer_text_new();
-  //gtk_cell_renderer_set_alignment(ebookListRender, 0, 0);
   gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
-  //g_object_set(ebookListRender, "cell-background", "darkred", NULL);
-  column = gtk_tree_view_column_new_with_attributes ("Format", ebookListRender, "text", FORMAT_COLUMN, NULL);
+
+  column = gtk_tree_view_column_new_with_attributes("Format", ebookListRender, "text", FORMAT_COLUMN, NULL);
   gtk_tree_view_column_set_resizable(column, false);
   gtk_tree_view_column_set_min_width(column, 80);
-  //gtk_tree_view_column_set_alignment(column, 0);
-  gtk_tree_view_append_column (GTK_TREE_VIEW (ebookList), column);
-  gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_GRID_LINES_BOTH);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
 
   ebookListRender = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes ("Author", ebookListRender, "text", AUTHOR_COLUMN, NULL);
+  g_object_set(G_OBJECT(ebookListRender), "editable", true, NULL);
+  g_signal_connect(G_OBJECT(ebookListRender), "edited", G_CALLBACK(handle_editing_author), ebookList);
+
+  column = gtk_tree_view_column_new_with_attributes("Author", ebookListRender, "text", AUTHOR_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(column, 110);
   gtk_tree_view_column_set_resizable(column, true);
-  //gtk_tree_view_column_set_alignment(column, 0);
   gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
-  gtk_tree_view_append_column(GTK_TREE_VIEW (ebookList), column);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
 
   ebookListRender = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes ("Title", ebookListRender, "text", TITLE_COLUMN, NULL);
+  g_object_set(G_OBJECT(ebookListRender), "editable", true, NULL);
+  g_signal_connect(G_OBJECT(ebookListRender), "edited", G_CALLBACK(handle_editing_title), ebookList);
+
+  column = gtk_tree_view_column_new_with_attributes("Title", ebookListRender, "text", TITLE_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(column, 240);
   gtk_tree_view_column_set_resizable(column, true);
-  //gtk_tree_view_column_set_alignment(column, 0);
   gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
-  gtk_tree_view_append_column(GTK_TREE_VIEW (ebookList), column);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
 
-  gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
+  //TODO: Add a sort function
+  // gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
+
+  //NOTE: Should we add grid lines?
+  //gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_GRID_LINES_BOTH);
 
   // The main menu -------------------------------------------------------------
   GtkWidget *menu = gtk_menu_bar_new();
@@ -343,6 +388,9 @@ void run(GtkApplication *app, gpointer user_data) {
   // Menu code end -------------------------------------------------------------
 
   gtk_widget_show_all(window);
+
+  // TODO: On exit, the application should unref the dataStore
+  //g_object_unref(dataStore);
 }
 
 
@@ -672,7 +720,7 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
       int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
       if (rc != SQLITE_OK) {
-        printf("SQL error: %s\n", dbErrorMsg);
+        printf("SQL error while deleting: %s\n", dbErrorMsg);
         sqlite3_free(dbErrorMsg);
       } else {
         gtk_list_store_remove(dataStore, &iter);
@@ -687,6 +735,119 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
   return true;
 }
 
+
+//------------------------------------------------------------------------------
+gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+
+  gtk_tree_model_get_iter_from_string(model, &iter, path);
+
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
+
+  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+  int format = 0;
+  if (strcmp(formatStr, "pdf") == 0) {
+    format = 1;
+  } else if (strcmp(formatStr, "epub") == 0) {
+    format = 2;
+  } else if (strcmp(formatStr, "mobi") == 0) {
+    format = 3;
+  } else if (strcmp(formatStr, "chm") == 0) {
+    format = 4;
+  }
+
+  int dataLength = strlen(new_text);
+
+  char author[dataLength == 0 ? 8 : dataLength+1];
+  if (dataLength == 0) {
+    strcpy(author, "Unknown");
+  } else {
+    strcpy(author, new_text);
+  }
+
+  char *dbErrorMsg = 0;
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+  char stmt[103+strlen(authorStr)+strlen(titleStr)+strlen(author)];
+  sprintf(stmt, "UPDATE ebook_collection SET author = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", author, format, authorStr, titleStr);
+  int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    printf("SQL error while updating: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, author, -1);
+  }
+
+  g_free(formatStr);
+  g_free(authorStr);
+  g_free(titleStr);
+
+  return true;
+}
+
+
+//------------------------------------------------------------------------------
+gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+
+  gtk_tree_model_get_iter_from_string(model, &iter, path);
+
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
+
+  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+  int format = 0;
+  if (strcmp(formatStr, "pdf") == 0) {
+    format = 1;
+  } else if (strcmp(formatStr, "epub") == 0) {
+    format = 2;
+  } else if (strcmp(formatStr, "mobi") == 0) {
+    format = 3;
+  } else if (strcmp(formatStr, "chm") == 0) {
+    format = 4;
+  }
+
+  char *dbErrorMsg = 0;
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+  if (strlen(new_text) != 0) {
+    char stmt[102+strlen(authorStr)+strlen(titleStr)+strlen(new_text)];
+    sprintf(stmt, "UPDATE ebook_collection SET title = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", new_text, format, authorStr, titleStr);
+    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      printf("SQL error while updating: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, new_text, -1);
+    }
+  } else {
+    struct dbHandlingData passToDB = { model, dataStore, &iter, NULL };
+    char stmt[101 + strlen(authorStr) + strlen(titleStr)];
+    sprintf(stmt, "SELECT filename FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", format, authorStr, titleStr);
+    int rc = sqlite3_exec(db, stmt, add_fileName_from_db, (void*) &passToDB, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      printf("SQL error: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
+  }
+
+  g_free(formatStr);
+  g_free(authorStr);
+  g_free(titleStr);
+
+  return true;
+}
 
 //------------------------------------------------------------------------------
 
@@ -870,7 +1031,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     if (dbOkay) {
       gtk_list_store_append(GTK_LIST_STORE(model), &iter);
       gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-        FORMAT_COLUMN, &fileType[1],
+        FORMAT_COLUMN, &lowerFiletype[1],
         AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
         TITLE_COLUMN, title == NULL ? cleanedFileName : title,
         -1
