@@ -488,7 +488,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
     }
 
     if (doRecord) {
-      if (currentChar > 0) {
+      if (currentChar > 32) {
         readBuffer[readBufferPos++] = currentChar;
       }
     }
