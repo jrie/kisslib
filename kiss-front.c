@@ -249,10 +249,16 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_widget_set_hexpand(ebookList, true);
   gtk_widget_set_vexpand(ebookList, true);
 
+  GtkWidget* progressRevealer = gtk_revealer_new();
+  gtk_revealer_set_transition_duration(GTK_REVEALER(progressRevealer), 2250);
+  gtk_revealer_set_transition_type(GTK_REVEALER(progressRevealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_UP);
+  gtk_grid_attach(GTK_GRID(grid), progressRevealer, 0, 2, 10, 1);
+
   GtkWidget *progressBar = gtk_progress_bar_new();
   g_object_set(G_OBJECT(progressBar), "margin-top", 8, "margin-bottom", 5, "margin-left", 15, "margin-right", 15, NULL);
   gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressBar), true);
-  gtk_grid_attach(GTK_GRID(grid), progressBar, 0, 2, 10, 1);
+  gtk_container_add(GTK_CONTAINER(progressRevealer), progressBar);
+  //gtk_grid_attach(GTK_GRID(grid), progressBar, 0, 2, 10, 1);
 
   GtkWidget *statusBar = gtk_statusbar_new();
   gtk_grid_attach(GTK_GRID(grid), statusBar, 0, 3, 10, 1);
@@ -264,6 +270,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
+  g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
 
   ebookListRender = gtk_cell_renderer_text_new();
   //gtk_cell_renderer_set_alignment(ebookListRender, 0, 0);
@@ -319,6 +326,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   g_object_set_data(G_OBJECT(meImportFiles), "appWindow", window);
   g_object_set_data(G_OBJECT(meImportFiles), "statusBar", statusBar);
+  g_object_set_data(G_OBJECT(meImportFiles), "progressRevealer", progressRevealer);
   g_object_set_data(G_OBJECT(meImportFiles), "progressBar", progressBar);
   g_object_set_data(G_OBJECT(meImportFiles), "treeview", ebookList);
   g_object_set_data(G_OBJECT(meImportFiles), "db", g_object_get_data(G_OBJECT(app), "db"));
@@ -397,10 +405,12 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(buttonBox), openButton);
   g_object_set_data(G_OBJECT(openButton), "rootWindow", fileChooserWindow);
   g_object_set_data(G_OBJECT(openButton), "fileChooser", chooser);
+  g_object_set_data(G_OBJECT(openButton), "progressRevealer", g_object_get_data(G_OBJECT(menuitem), "progressRevealer"));
   g_object_set_data(G_OBJECT(openButton), "progressBar", g_object_get_data(G_OBJECT(menuitem), "progressBar"));
   g_object_set_data(G_OBJECT(openButton), "statusBar", g_object_get_data(G_OBJECT(menuitem), "statusBar"));
   g_object_set_data(G_OBJECT(openButton), "treeview", g_object_get_data(G_OBJECT(menuitem), "treeview"));
   g_object_set_data(G_OBJECT(openButton), "db", g_object_get_data(G_OBJECT(menuitem), "db"));
+
   g_signal_connect(G_OBJECT(openButton), "clicked", G_CALLBACK(fileChooser_importFiles), NULL);
 
   //gtk_window_set_keep_above(GTK_WINDOW(fileChooserWindow), true);
@@ -437,6 +447,9 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   }
 
   gtk_widget_destroy(rootWindow);
+
+  GtkWidget *progressRevealer = g_object_get_data(G_OBJECT(button), "progressRevealer");
+  gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), true);
 
   GtkWidget *progressBar = g_object_get_data(G_OBJECT(button), "progressBar");
   GtkWidget *statusBar = g_object_get_data(G_OBJECT(button), "statusBar");
@@ -501,7 +514,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
 
-
+  gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), false);
 }
 
 
@@ -522,7 +535,11 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   //gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
 
   gint format = gtk_selection_data_get_format(selData);
+  GtkWidget *progressRevealer = g_object_get_data(G_OBJECT(widget), "progressRevealer");
+
   if (format == 8) {
+    gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), true);
+
     char message[512];
 
     gtk_drag_dest_unset(widget);
@@ -589,10 +606,12 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     gtk_drag_finish(context, true, true, time);
     gtk_drag_dest_set(widget, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
     gtk_drag_dest_add_uri_targets(widget);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), false);
   } else {
     gtk_drag_finish(context, true, true, time);
     gtk_drag_dest_set(widget, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
     gtk_drag_dest_add_uri_targets(widget);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), false);
     return false;
   }
 
