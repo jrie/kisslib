@@ -12,7 +12,7 @@ Currently there is no launch feature itself, this is early development. But its 
 
 The data is then stored into the sqlite3 database "kisslib.db" and is then again available if you open kisslib.
 
-For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be down by start typing in the application.
+For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application.
 
 Supported file types are:
 * pdf
