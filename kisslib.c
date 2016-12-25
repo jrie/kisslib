@@ -502,23 +502,22 @@ bool read_epub(char fileName[], fileInfo *fileData) {
 
   //----------------------------------------------------------------------------
   // Output
+  char title[readBufferPos != 0 ? readBufferPos+8 : strlen(fileName)+8];
   if (readBufferPos != 0) {
     readBuffer[readBufferPos] = '\0';
     //printf("Title(%s)\n", readBuffer);
-
-    char title[readBufferPos+8];
     sprintf(title, "Title(%s)", readBuffer);
-
-    fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
-    fileData->entries[fileData->count] = malloc(sizeof(char) * (readBufferPos+9));
-    strcpy(fileData->entries[fileData->count], title);
-
-    fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
-    fileData->types[fileData->count] = 1;
-    ++fileData->count;
   } else {
-    return false;
+    sprintf(title, "Title(%s)", fileName);
   }
+
+  fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
+  fileData->entries[fileData->count] = malloc(sizeof(char) * (readBufferPos+9));
+  strcpy(fileData->entries[fileData->count], title);
+
+  fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
+  fileData->types[fileData->count] = 1;
+  ++fileData->count;
 
   return true;
 }
