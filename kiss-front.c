@@ -88,6 +88,8 @@ int main (int argc, char *argv[]) {
   g_object_unref(app);
 
   // Close db
+
+  sqlite3_exec(db, "VACUUM", NULL, NULL, &dbErrorMsg);
   sqlite3_close(db);
 
   return status;
@@ -226,6 +228,11 @@ void run(GtkApplication *app, gpointer user_data) {
   ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
   g_object_unref(dataStore);
 
+  gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
+  // TODO: Add reorder option
+  //gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ebookList), true);
+
+  gtk_tree_view_set_search_column(GTK_TREE_VIEW(ebookList), 2);
   gtk_drag_dest_set(ebookList, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
   gtk_drag_dest_add_uri_targets(ebookList);
 
@@ -483,21 +490,9 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   g_slist_free(filenames);
 
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
-  message[0] = '\0';
-  char filesAddedStr[32];
-  char filesErrorStr[32];
-  sprintf(filesAddedStr, "%u", filesAdded);
-  sprintf(filesErrorStr, "%u", filesError);
-  strcat(message, "[STATUS] Done importing ");
-  strcat(message, filesAddedStr);
-  strcat(message, filesAdded == 1 ? " file" : " files");
-  if (filesError != 0) {
-    strcat(message, ", ");
-    strcat(message, filesErrorStr);
-    strcat(message, filesError == 1 ? " error." : " errors.");
-  } else {
-    strcat(message, ".");
-  }
+
+  sprintf(message, "[STATUS] Done importing %u %s%s%s",
+    filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : "", filesError == 0 ? "." : (filesError == 1 ? " errors." : " errors."));
 
   contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
@@ -576,21 +571,8 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     }
 
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
-    message[0] = '\0';
-    char filesAddedStr[32];
-    char filesErrorStr[32];
-    sprintf(filesAddedStr, "%u", filesAdded);
-    sprintf(filesErrorStr, "%u", filesError);
-    strcat(message, "[STATUS] Done importing ");
-    strcat(message, filesAddedStr);
-    strcat(message, filesAdded == 1 ? " file" : " files");
-    if (filesError != 0) {
-      strcat(message, ", ");
-      strcat(message, filesErrorStr);
-      strcat(message, filesError == 1 ? " error." : " errors.");
-    } else {
-      strcat(message, ".");
-    }
+    sprintf(message, "[STATUS] Done importing %u %s%s%s",
+      filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : "", filesError == 0 ? "." : (filesError == 1 ? " errors." : " errors."));
 
     gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
     contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
@@ -680,9 +662,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
   // Update the UI ---------------------------------------------------------
   if (showStatus && statusBar != NULL) {
-    message[0] = '\0';
-    strcat(message, "[PARSING] ");
-    strcat(message, cleanedFileName);
+    sprintf(message, "[PARSING] %s", cleanedFileName);
     gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
     gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
   }
@@ -803,16 +783,12 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       );
 
       if (showStatus && statusBar != NULL) {
-        message[0] = '\0';
-        strcat(message, "[ADDED] ");
-        strcat(message, cleanedFileName);
+        sprintf(message, "[ADDED] %s", cleanedFileName);
         gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
         gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
       }
     } else if (showStatus && statusBar != NULL) {
-      message[0] = '\0';
-      strcat(message, "[ERROR IMPORTING INTO DB] ");
-      strcat(message, cleanedFileName);
+      sprintf(message, "[ERROR IMPORTING INTO DB] %s", cleanedFileName);
       gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
       gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
     }
@@ -866,10 +842,7 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
 
         int pathSize = strlen(pathRoot)+strlen(ep->d_name)+2;
         char *completePath = malloc((pathSize) * sizeof(char));
-        strcpy(completePath, pathRoot);
-        strcat(completePath, "/");
-        strcat(completePath, ep->d_name);
-        completePath[pathSize-1] = '\0';
+        sprintf(completePath, "%s/%s", pathRoot, ep->d_name);
 
         filesAdded += read_out_path(completePath, statusBar, contextId, progressBar, i, filesToAdd, model, db);
         free(completePath);
@@ -888,11 +861,8 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
           folderLowerFileType[pos] = '\0';
 
           int pathSize = strlen(pathRoot)+strlen(ep->d_name)+2;
-          char completePath[pathSize];
-          strcpy(completePath, pathRoot);
-          strcat(completePath, "/");
-          strcat(completePath, ep->d_name);
-          completePath[pathSize-1] = '\0';
+          char *completePath = malloc((pathSize) * sizeof(char));
+          sprintf(completePath, "%s/%s", pathRoot, ep->d_name);
 
           if (strcmp(folderLowerFileType, ".pdf") == 0 || strcmp(folderLowerFileType, ".epub") == 0 || strcmp(folderLowerFileType, ".mobi") == 0 || strcmp(folderLowerFileType, ".chm") == 0) {
             if (read_and_add_file_to_model(completePath, true, statusBar, contextId, false, progressBar, i, filesToAdd, true, model, db)) {
@@ -900,6 +870,8 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
               ++filesAdded;
             }
           }
+
+          free(completePath);
         }
       }
 
