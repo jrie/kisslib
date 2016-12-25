@@ -491,8 +491,11 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
 
+  char errorString[64];
+  sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
+
   sprintf(message, "[STATUS] Done importing %u %s%s%s",
-    filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : "", filesError == 0 ? "." : (filesError == 1 ? " errors." : " errors."));
+    filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
 
   contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
@@ -571,8 +574,11 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     }
 
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
+    char errorString[64];
+    sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
+
     sprintf(message, "[STATUS] Done importing %u %s%s%s",
-      filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : "", filesError == 0 ? "." : (filesError == 1 ? " errors." : " errors."));
+      filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
 
     gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
     contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
@@ -745,15 +751,15 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     char *dbErrorMsg = 0;
     bool dbOkay = true;
 
-    int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title)) \
-                       + (author == NULL ? 7 : strlen(author)) \
+    int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
+                       + (author == NULL ? 7 : strlen(author))
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
 
     char *dbStm = (char*) calloc((54 + additionSize), sizeof(char));
-    sprintf(dbStm, "INSERT INTO 'ebook_collection' VALUES (NULL,%d,'%s','%s','%s','%s');", \
-      format, \
-      author == NULL ? "Unknown" : author, \
-      title == NULL ? cleanedFileName : title, \
+    sprintf(dbStm, "INSERT INTO 'ebook_collection' VALUES (NULL,%d,'%s','%s','%s','%s');",
+      format,
+      author == NULL ? "Unknown" : author,
+      title == NULL ? cleanedFileName : title,
       &cleanedPath[7],
       cleanedFileName
     );
