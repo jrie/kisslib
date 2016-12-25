@@ -20,12 +20,14 @@
 
 void run(GtkApplication*, gpointer);
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
+gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
 
 void menuhandle_meQuit(GtkMenuItem*, gpointer);
 void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
+
 
 void fileChooser_close(GtkButton*, gpointer);
 void fileChooser_importFiles(GtkButton*, gpointer);
@@ -40,6 +42,7 @@ enum {
   TITLE_COLUMN,
   N_COLUMNS
 };
+
 
 //------------------------------------------------------------------------------
 int main (int argc, char *argv[]) {
@@ -226,7 +229,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
 
   ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
-  g_object_unref(dataStore);
+  //g_object_unref(dataStore);
 
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
   // TODO: Add reorder option
@@ -249,6 +252,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_widget_set_hexpand(ebookList, true);
   gtk_widget_set_vexpand(ebookList, true);
 
+
   GtkWidget* progressRevealer = gtk_revealer_new();
   gtk_revealer_set_transition_duration(GTK_REVEALER(progressRevealer), 2250);
   gtk_revealer_set_transition_type(GTK_REVEALER(progressRevealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_UP);
@@ -266,8 +270,10 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Welcome to KISS Ebook");
 
   //gtk_grid_attach(GTK_GRID(grid), ebookList, 0, 0, 1, 1);
-  g_signal_connect(ebookList, "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
+  g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
+  g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_object_set_data(G_OBJECT(ebookList), "dataStore", dataStore);
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
   g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
@@ -301,7 +307,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
 
-  // The main menu
+  // The main menu -------------------------------------------------------------
   GtkWidget *menu = gtk_menu_bar_new();
 
   GtkWidget *mainMenu = gtk_menu_new();
@@ -313,7 +319,6 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mMain);
 
   g_object_set_data(G_OBJECT(meQuit), "app", app);
-
   g_signal_connect(G_OBJECT(meQuit), "activate", G_CALLBACK(menuhandle_meQuit), NULL);
 
   GtkWidget *opMenu = gtk_menu_new();
@@ -335,7 +340,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
 
-  // Menu code end
+  // Menu code end -------------------------------------------------------------
 
   gtk_widget_show_all(window);
 }
@@ -613,6 +618,70 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     gtk_drag_dest_add_uri_targets(widget);
     gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), false);
     return false;
+  }
+
+  return true;
+}
+
+
+//------------------------------------------------------------------------------
+
+gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+  bool pressedDelete = false;
+
+  switch (event->keyval) {
+    case 65535:
+      // Delete key
+      pressedDelete = true;
+      break;
+    default:
+      //printf("key pressed: %u - %d\n", event->keyval, event->state);
+      return false;
+      break;
+  }
+
+  if (pressedDelete) {
+    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+    GtkTreeIter iter;
+
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+      GtkListStore *dataStore = g_object_get_data(G_OBJECT(widget), "dataStore");
+      gchar *formatStr;
+      gchar *authorStr;
+      gchar *titleStr;
+
+      gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+      int format = 0;
+      if (strcmp(formatStr, "pdf") == 0) {
+        format = 1;
+      } else if (strcmp(formatStr, "epub") == 0) {
+        format = 2;
+      } else if (strcmp(formatStr, "mobi") == 0) {
+        format = 3;
+      } else if (strcmp(formatStr, "chm") == 0) {
+        format = 4;
+      }
+
+      char *dbErrorMsg = 0;
+
+      sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
+      char stmt[90+strlen(authorStr)+strlen(titleStr)];
+      sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", format, authorStr, titleStr);
+      int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+      if (rc != SQLITE_OK) {
+        printf("SQL error: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      } else {
+        gtk_list_store_remove(dataStore, &iter);
+      }
+
+      g_free(formatStr);
+      g_free(authorStr);
+      g_free(titleStr);
+    }
   }
 
   return true;
@@ -907,3 +976,5 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
 
   return filesAdded;
 }
+
+//------------------------------------------------------------------------------
