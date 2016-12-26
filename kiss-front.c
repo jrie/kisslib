@@ -17,28 +17,6 @@
 #include <dirent.h>
 
 //------------------------------------------------------------------------------
-
-void run(GtkApplication*, gpointer);
-gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
-gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
-gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
-gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
-
-bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
-int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
-
-void menuhandle_meQuit(GtkMenuItem*, gpointer);
-void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
-
-
-void fileChooser_close(GtkButton*, gpointer);
-void fileChooser_importFiles(GtkButton*, gpointer);
-
-// Db related
-int add_db_data_to_store(void*, int, char**, char**);
-int add_fileName_from_db(void*, int, char**, char**);
-
-//------------------------------------------------------------------------------
 enum {
   STARTUP_COLUMN,
   FORMAT_COLUMN,
@@ -54,6 +32,47 @@ typedef struct dbHandlingData {
   gchar **data;
 } dbHandlingData;
 
+typedef struct dbAnswer {
+  unsigned int count;
+  char **data;
+  char **columnNames;
+} dbAnswer;
+
+//------------------------------------------------------------------------------
+
+void run(GtkApplication*, gpointer);
+gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
+gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
+gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
+gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
+void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
+
+
+bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
+int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
+
+void menuhandle_meQuit(GtkMenuItem*, gpointer);
+void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
+void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
+void launcherWindow_save_data(GtkButton*, gpointer);
+void launcherWindow_close(GtkButton*, gpointer);
+
+void menuhandle_meEditEntry(GtkMenuItem*, gpointer);
+void open_edit_window(GObject *);
+void edit_entry_close(GtkButton*, gpointer);
+
+
+void fileChooser_close(GtkButton*, gpointer);
+void fileChooser_importFiles(GtkButton*, gpointer);
+
+// Db related
+int add_db_data_to_store(void*, int, char**, char**);
+int add_fileName_from_db(void*, int, char**, char**);
+
+int fill_db_answer(void*, int, char**, char**);
+void free_db_answer(struct dbAnswer*);
+bool get_db_answer_value(struct dbAnswer*, const char[], char**);
+
 //------------------------------------------------------------------------------
 int main (int argc, char *argv[]) {
   GtkApplication *app;
@@ -61,7 +80,7 @@ int main (int argc, char *argv[]) {
 
   // SQLite3 code
   sqlite3 *db;
-  char *dbErrorMsg = 0;
+  char *dbErrorMsg = NULL;
 
   int rc = sqlite3_open("kisslib.db", &db);
 
@@ -71,14 +90,19 @@ int main (int argc, char *argv[]) {
     return 1;
   } else {
     rc = sqlite3_exec(db, " \
-      CREATE TABLE IF NOT EXISTS 'ebook_collection' ( \
+      CREATE TABLE IF NOT EXISTS ebook_collection ( \
         'id' INTEGER PRIMARY KEY ASC, \
         'format' INTEGER, \
         'author' TEXT, \
         'title' TEXT, \
         'path' TEXT, \
         'filename' TEXT \
-      );", NULL, NULL, &dbErrorMsg);
+      ); \
+      CREATE TABLE IF NOT EXISTS launcher_applications ( \
+        'id' INTEGER PRIMARY KEY ASC, \
+        'format' INTEGER, \
+        'program' TEXT DEFAULT NULL \
+      )", NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
       printf("SQL error: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
@@ -107,6 +131,71 @@ int main (int argc, char *argv[]) {
 
   return status;
 }
+
+
+//------------------------------------------------------------------------------
+int fill_db_answer(void* dbAnswerData, int argc, char **argv, char **columnNames) {
+  /*
+  typedef struct dbAnswer {
+    unsigned int count;
+    char **data;
+    char **columnNames;
+  } dbAnswer;
+  */
+
+  dbAnswer *answerData = (dbAnswer*) dbAnswerData;
+
+  for (int i = 0; i < argc; ++i) {
+    answerData->data = (char**) realloc(answerData->data, sizeof(char*) * (answerData->count + 1));
+    answerData->data[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
+    strcpy(answerData->data[i], argv[i]);
+
+    answerData->columnNames = (char**) realloc(answerData->columnNames, sizeof(char*) * (answerData->count + 1));
+    answerData->columnNames[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
+    strcpy(answerData->columnNames[i], columnNames[i]);
+
+    ++answerData->count;
+  }
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+bool get_db_answer_value(struct dbAnswer* answerData, const char columnName[], char** data) {
+  for (int i = 0; i < answerData->count; ++i) {
+    if (strcmp(answerData->columnNames[i], columnName) == 0) {
+      *data = malloc(sizeof(char) * (strlen(answerData->data[i]) + 1));
+      strcpy(*data, answerData->data[i]);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+//------------------------------------------------------------------------------
+void free_db_answer(struct dbAnswer *answerData) {
+  /*
+  typedef struct dbAnswer {
+    unsigned int count;
+    char **data;
+    char **columnNames;
+  } dbAnswer;
+  */
+
+  for (int i = 0; i < answerData->count; ++i) {
+    free(answerData->data[i]);
+    free(answerData->columnNames[i]);
+  }
+/*
+  free(answerData->data);
+  free(answerData->columnNames);
+*/
+  answerData->count = 0;
+}
+
+
+//------------------------------------------------------------------------------
 
 int add_fileName_from_db(void* dbHandleData, int argc, char **argv, char **columnNames) {
   if (argc == 1) {
@@ -180,6 +269,7 @@ void run(GtkApplication *app, gpointer user_data) {
   window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(window), "KISS Ebook Starter");
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 400);
+  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
   grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(window), grid);
@@ -234,7 +324,7 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
   sqlite3* db = g_object_get_data(G_OBJECT(app), "db");
 
-  char *dbErrorMsg = 0;
+  char *dbErrorMsg = NULL;
 
   int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
@@ -258,6 +348,7 @@ void run(GtkApplication *app, gpointer user_data) {
   //gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ebookList), true);
 
   gtk_tree_view_set_search_column(GTK_TREE_VIEW(ebookList), TITLE_COLUMN);
+  gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_GRID_LINES_BOTH);
   gtk_drag_dest_set(ebookList, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
   gtk_drag_dest_add_uri_targets(ebookList);
 
@@ -288,6 +379,7 @@ void run(GtkApplication *app, gpointer user_data) {
   guint contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Welcome to KISS Ebook");
 
+  g_signal_connect(G_OBJECT(ebookList), "row-activated", G_CALLBACK (handle_row_activated), NULL);
   g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
   g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
@@ -296,17 +388,19 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
   g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
 
+  //----------------------------------------------------------------------------
+
   GtkIconTheme *iconTheme = gtk_icon_theme_get_default();
   GError *iconError = NULL;
-  GtkIconInfo *openIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
-  GdkPixbuf *icon = gtk_icon_info_load_icon(openIcon, &iconError);
+  GtkIconInfo *infoOpenIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
+  GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
 
   if (iconError != NULL) {
     printf("Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
     g_error_free(iconError);
   } else {
     GtkCellRenderer *imageRenderer = gtk_cell_renderer_pixbuf_new();
-    g_object_set(G_OBJECT(imageRenderer), "pixbuf", icon, NULL);
+    g_object_set(G_OBJECT(imageRenderer), "pixbuf", infoIcon, NULL);
     gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
 
     column = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
@@ -314,7 +408,7 @@ void run(GtkApplication *app, gpointer user_data) {
     gtk_tree_view_column_set_min_width(column, 50);
     gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
 
-    g_object_unref(icon);
+    g_object_unref(infoIcon);
   }
 
 
@@ -346,13 +440,17 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
 
+
+
   //TODO: Add a sort function
   // gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
 
-  //NOTE: Should we add grid lines?
-  //gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_GRID_LINES_BOTH);
+
 
   // The main menu -------------------------------------------------------------
+  // TODO: Should the main menu use images?
+  // NOTE: https://developer.gnome.org/gtk3/stable/GtkImageMenuItem.html#GtkImageMenuItem--image
+
   GtkWidget *menu = gtk_menu_bar_new();
 
   GtkWidget *mainMenu = gtk_menu_new();
@@ -368,11 +466,25 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *opMenu = gtk_menu_new();
   GtkWidget *mOp = gtk_menu_item_new_with_label("Operations");
+  GtkWidget *seperator = gtk_separator_menu_item_new();
+  GtkWidget *meSetLauncher = gtk_menu_item_new_with_label("Set launcher applications");
   GtkWidget *meImportFiles = gtk_menu_item_new_with_label("Import files and folders");
+  GtkWidget *meEditEntry = gtk_menu_item_new_with_label("Edit selected entry");
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetLauncher);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meImportFiles);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meEditEntry);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOp);
+
+  g_object_set_data(G_OBJECT(meSetLauncher), "appWindow", window);
+  g_object_set_data(G_OBJECT(meSetLauncher), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_signal_connect(G_OBJECT(meSetLauncher), "activate", G_CALLBACK(menuhandle_meSetLauncher), NULL);
+
+  g_object_set_data(G_OBJECT(meEditEntry), "appWindow", window);
+  g_object_set_data(G_OBJECT(meEditEntry), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_signal_connect(G_OBJECT(meEditEntry), "activate", G_CALLBACK(menuhandle_meEditEntry), NULL);
 
   g_object_set_data(G_OBJECT(meImportFiles), "appWindow", window);
   g_object_set_data(G_OBJECT(meImportFiles), "statusBar", statusBar);
@@ -393,14 +505,353 @@ void run(GtkApplication *app, gpointer user_data) {
   //g_object_unref(dataStore);
 }
 
-
 //------------------------------------------------------------------------------
 // Menu handlers
 void menuhandle_meQuit(GtkMenuItem *menuitem, gpointer user_data) {
   g_application_quit(G_APPLICATION(g_object_get_data(G_OBJECT(menuitem), "app")));
 }
 
-// Menu handlers
+
+//------------------------------------------------------------------------------
+void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
+  GtkWidget *launcherWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_decorated(GTK_WINDOW(launcherWindow), true);
+
+  gtk_window_set_title(GTK_WINDOW(launcherWindow), "KISS Ebook Starter - Set launcher applications");
+  gtk_window_set_default_size(GTK_WINDOW(launcherWindow), 640, 400);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+  gtk_container_add(GTK_CONTAINER(launcherWindow), box);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *labelPDF = gtk_label_new("PDF file handler:");
+  gtk_label_set_xalign(GTK_LABEL(labelPDF), 0);
+  g_object_set(G_OBJECT(labelPDF), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), labelPDF);
+
+  GtkWidget *entryPDF = gtk_entry_new();
+  g_object_set(G_OBJECT(entryPDF), "margin", 6, NULL);
+  gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 64);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
+  gtk_widget_set_tooltip_text(entryPDF, "Application and command to open the .pdf files.");
+  gtk_container_add(GTK_CONTAINER(box), entryPDF);
+
+
+  GtkWidget *labelEPUB = gtk_label_new("EPUB file handler:");
+  gtk_label_set_xalign(GTK_LABEL(labelEPUB), 0);
+  g_object_set(G_OBJECT(labelEPUB), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), labelEPUB);
+
+  GtkWidget *entryEPUB = gtk_entry_new();
+  g_object_set(G_OBJECT(entryEPUB), "margin", 6, NULL);
+  gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 64);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
+  gtk_widget_set_tooltip_text(entryEPUB, "Application and command to open the .epub files.");
+  gtk_container_add(GTK_CONTAINER(box), entryEPUB);
+
+  GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
+  gtk_label_set_xalign(GTK_LABEL(labelMOBI), 0);
+  g_object_set(G_OBJECT(labelMOBI), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), labelMOBI);
+
+  GtkWidget *entryMOBI = gtk_entry_new();
+  g_object_set(G_OBJECT(entryMOBI), "margin", 6, NULL);
+  gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 64);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
+  gtk_widget_set_tooltip_text(entryMOBI, "Application and command to open the .mobi files.");
+  gtk_container_add(GTK_CONTAINER(box), entryMOBI);
+
+
+  GtkWidget *labelCHM= gtk_label_new("CHM file handler:");
+  gtk_label_set_xalign(GTK_LABEL(labelCHM), 0);
+  g_object_set(G_OBJECT(labelCHM), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), labelCHM);
+
+  GtkWidget *entryCHM = gtk_entry_new();
+  g_object_set(G_OBJECT(entryCHM), "margin", 6, NULL);
+  gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 64);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
+  gtk_widget_set_tooltip_text(entryCHM, "Application and command to open the .chm files.");
+  gtk_container_add(GTK_CONTAINER(box), entryCHM);
+
+  //----------------------------------------------------------------------------
+  GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonBox), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), buttonBox);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
+
+  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
+  g_object_set_data(G_OBJECT(cancelButton), "rootWindow", launcherWindow);
+  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(launcherWindow_close), NULL);
+
+  GtkWidget *saveButton = gtk_button_new_with_label("Save");
+  gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
+  g_object_set_data(G_OBJECT(saveButton), "entryPDF", entryPDF);
+  g_object_set_data(G_OBJECT(saveButton), "entryEPUB", entryEPUB);
+  g_object_set_data(G_OBJECT(saveButton), "entryMOBI", entryMOBI);
+  g_object_set_data(G_OBJECT(saveButton), "entryCHM", entryCHM);
+  g_object_set_data(G_OBJECT(saveButton), "rootWindow", launcherWindow);
+  g_object_set_data(G_OBJECT(saveButton), "db", g_object_get_data(G_OBJECT(menuitem), "db"));
+  g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(launcherWindow_save_data), NULL);
+  //----------------------------------------------------------------------------
+
+  gtk_window_set_type_hint(GTK_WINDOW(launcherWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
+  gtk_window_activate_focus(GTK_WINDOW(launcherWindow));
+  gtk_widget_show_all(launcherWindow);
+
+  gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(launcherWindow));
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(launcherWindow), true);
+  gtk_window_set_position(GTK_WINDOW(launcherWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+  gtk_window_set_modal(GTK_WINDOW(launcherWindow), true);
+}
+
+void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
+  GtkEntry *entryPDF = g_object_get_data(G_OBJECT(button), "entryPDF");
+  GtkEntry *entryEPUB = g_object_get_data(G_OBJECT(button), "entryEPUB");
+  GtkEntry *entryMOBI = g_object_get_data(G_OBJECT(button), "entryMOBI");
+  GtkEntry *entryCHM = g_object_get_data(G_OBJECT(button), "entryCHM");
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+
+  const gchar *pdfHandler = gtk_entry_get_text(entryPDF);
+  const gchar *epubHandler  = gtk_entry_get_text(entryEPUB);
+  const gchar *mobiHandler = gtk_entry_get_text(entryMOBI);
+  const gchar *chmHandler = gtk_entry_get_text(entryCHM);
+
+  char key = '\0';
+  unsigned int readPos = 0;
+  unsigned int writePos = 0;
+
+  char pdfHandle[65];
+  char epubHandle[65];
+  char mobiHandle[65];
+  char chmHandle[65];
+
+  bool pdfHasData = false;
+  bool epubHasData = false;
+  bool mobiHasData = false;
+  bool chmHasData = false;
+
+  for (int i = 0; i < 4; ++i) {
+    readPos = 0;
+    writePos = 0;
+
+    while(true) {
+      switch (i) {
+        case 0:
+          key = pdfHandler[readPos++];
+          break;
+        case 1:
+          key = epubHandler[readPos++];
+          break;
+        case 2:
+          key = mobiHandler[readPos++];
+          break;
+        case 3:
+          key = chmHandler[readPos++];
+          break;
+        default:
+          break;
+      }
+
+      if (key == '\0') {
+        break;
+      } else if (key == ' ') {
+        continue;
+      }
+
+      switch (i) {
+        case 0:
+          pdfHandle[writePos++] = key;
+          pdfHandle[writePos] = '\0';
+          pdfHasData = true;
+          break;
+        case 1:
+          epubHandle[writePos++] = key;
+          epubHandle[writePos] = '\0';
+          epubHasData = true;
+          break;
+        case 2:
+          mobiHandle[writePos++] = key;
+          mobiHandle[writePos] = '\0';
+          mobiHasData = true;
+          break;
+        case 3:
+          chmHandle[writePos++] = key;
+          chmHandle[writePos] = '\0';
+          chmHasData = true;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  char *dbErrorMsg = NULL;
+  char clearLauncherStmt[34];
+  sprintf(clearLauncherStmt, "DELETE FROM launcher_applications");
+
+  int rc = sqlite3_exec(db, clearLauncherStmt, NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    printf("Unknown SQL error while clearing launcher applications:%s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  //----------------------------------------------------------------------------
+
+  char *dbStmt = NULL;
+
+  for (int i = 1; i < 5; ++i) {
+    if (i == 1 && pdfHasData) {
+      dbStmt = calloc(sizeof(char), 71 + strlen(pdfHandle));
+      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\")", i, pdfHandle);
+    } else if (i == 2 && epubHasData) {
+      dbStmt = calloc(sizeof(char), 71 + strlen(epubHandle));
+      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\")", i, epubHandle);
+    } else if (i == 3 && mobiHasData) {
+      dbStmt = calloc(sizeof(char), 71 + strlen(mobiHandle));
+      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\")", i, mobiHandle);
+    } else if (i == 4 && chmHasData) {
+      dbStmt = calloc(sizeof(char), 71 + strlen(chmHandle));
+      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\")", i, chmHandle);
+    } else {
+      continue;
+    }
+
+    if (dbStmt != NULL) {
+      int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        if (rc == SQLITE_FULL) {
+          printf("Cannot add data to the database, the (temporary) disk is full.");
+        } else {
+          printf("Unknown SQL error: %s\n", dbErrorMsg);
+        }
+
+        sqlite3_free(dbErrorMsg);
+      }
+
+      free(dbStmt);
+    }
+
+  }
+
+
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+void launcherWindow_close(GtkButton *button, gpointer user_data) {
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+
+//------------------------------------------------------------------------------
+
+void menuhandle_meEditEntry(GtkMenuItem *menuitem, gpointer user_data) {
+  open_edit_window(G_OBJECT(menuitem));
+}
+
+void open_edit_window(GObject *dataItem) {
+  GtkWidget *editWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_decorated(GTK_WINDOW(editWindow), true);
+
+  gtk_window_set_title(GTK_WINDOW(editWindow), "KISS Ebook Starter - Set launcher applications");
+  gtk_window_set_default_size(GTK_WINDOW(editWindow), 640, 400);
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+
+  gtk_container_add(GTK_CONTAINER(editWindow), box);
+
+  GtkWidget *labelPath = gtk_label_new("Path:");
+  GtkWidget *labelFileName = gtk_label_new("Filename:");
+  GtkWidget *labelFormat = gtk_label_new("Format:");
+  GtkWidget *labelAuthor = gtk_label_new("Author:");
+  GtkWidget *labelTitle = gtk_label_new("Title:");
+
+  gtk_label_set_xalign(GTK_LABEL(labelPath), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelFileName), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelFormat), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelAuthor), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelTitle), 0);
+
+  g_object_set(G_OBJECT(labelPath), "margin", 6, NULL);
+  g_object_set(G_OBJECT(labelFileName), "margin", 6, NULL);
+  g_object_set(G_OBJECT(labelFormat), "margin", 6, NULL);
+  g_object_set(G_OBJECT(labelAuthor), "margin", 6, NULL);
+  g_object_set(G_OBJECT(labelTitle), "margin", 6, NULL);
+
+  GtkWidget *entryPath = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), "Complete path");
+  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename.");
+  g_object_set(G_OBJECT(entryPath), "editable", false, NULL);
+
+  GtkWidget *entryFileName = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryFileName), 256);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFileName), "Filename");
+  g_object_set(G_OBJECT(entryFileName), "editable", false, NULL);
+
+  GtkWidget *entryFormat = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryFormat), 5);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFormat), "Format");
+  g_object_set(G_OBJECT(entryFormat), "editable", false, NULL);
+
+  GtkWidget *entryAuthor = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryAuthor), 256);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), "Author(s)");
+
+  GtkWidget *entryTitle = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryTitle), 256);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryTitle), "Title");
+  gtk_widget_set_tooltip_text(entryTitle, "The title of the ebook displayed in KISS Ebook.");
+
+  gtk_container_add(GTK_CONTAINER(box), labelPath);
+  gtk_container_add(GTK_CONTAINER(box), entryPath);
+  gtk_container_add(GTK_CONTAINER(box), labelFileName);
+  gtk_container_add(GTK_CONTAINER(box), entryFileName);
+  gtk_container_add(GTK_CONTAINER(box), labelFormat);
+  gtk_container_add(GTK_CONTAINER(box), entryFormat);
+  gtk_container_add(GTK_CONTAINER(box), labelAuthor);
+  gtk_container_add(GTK_CONTAINER(box), entryAuthor);
+  gtk_container_add(GTK_CONTAINER(box), labelTitle);
+  gtk_container_add(GTK_CONTAINER(box), entryTitle);
+
+  GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonBox), "margin", 6, NULL);
+  gtk_container_add(GTK_CONTAINER(box), buttonBox);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
+
+  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
+  g_object_set_data(G_OBJECT(cancelButton), "rootWindow", editWindow);
+  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(edit_entry_close), NULL);
+
+  GtkWidget *saveButton = gtk_button_new_with_label("Save data");
+  gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
+  g_object_set_data(G_OBJECT(saveButton), "rootWindow", editWindow);
+  g_object_set_data(G_OBJECT(saveButton), "treeview", g_object_get_data(G_OBJECT(dataItem), "treeview"));
+  g_object_set_data(G_OBJECT(saveButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
+  // TODO: Start here
+  //g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(editData_save_data), NULL);
+
+  gtk_window_set_type_hint(GTK_WINDOW(editWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
+  gtk_window_activate_focus(GTK_WINDOW(editWindow));
+  gtk_widget_show_all(editWindow);
+
+  gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(dataItem), "appWindow")), GTK_WINDOW(editWindow));
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(editWindow), true);
+  gtk_window_set_position(GTK_WINDOW(editWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+  gtk_window_set_modal(GTK_WINDOW(editWindow), true);
+}
+
+void edit_entry_close(GtkButton *button, gpointer user_data) {
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+//------------------------------------------------------------------------------
 void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   GtkWidget *fileChooserWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(fileChooserWindow), true);
@@ -446,6 +897,7 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
 
   gtk_container_add(GTK_CONTAINER(box), chooser);
   GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonBox), "margin", 6, NULL);
   gtk_container_add(GTK_CONTAINER(box), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
@@ -473,8 +925,8 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
 
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(fileChooserWindow), true);
-  gtk_window_set_position(GTK_WINDOW(fileChooserWindow), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(fileChooserWindow), true);
+  gtk_window_set_position(GTK_WINDOW(fileChooserWindow), GTK_WIN_POS_CENTER_ON_PARENT);
 }
 
 
@@ -671,8 +1123,118 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   return true;
 }
 
+#define SHELL "/bin/sh"
 
 //------------------------------------------------------------------------------
+void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
+  int offset = gtk_tree_view_column_get_x_offset(column);
+  if (offset != 0) {
+    return;
+  }
+
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
+  GtkTreeIter iter;
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
+
+  gtk_tree_selection_get_selected(selection, &model, &iter);
+  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+  sqlite3 *db = g_object_get_data(G_OBJECT(tree_view), "db");
+
+  int format = 0;
+  if (strcmp(formatStr, "pdf") == 0) {
+    format = 1;
+  } else if (strcmp(formatStr, "epub") == 0) {
+    format = 2;
+  } else if (strcmp(formatStr, "mobi") == 0) {
+    format = 3;
+  } else if (strcmp(formatStr, "chm") == 0) {
+    format = 4;
+  } else {
+    return;
+  }
+
+
+  /*
+  int sqlite3_prepare_v2(
+    sqlite3 *db,            Database handle
+    const char *zSql,       SQL statement, UTF-8 encoded
+    int nByte,              Maximum length of zSql in bytes.
+    sqlite3_stmt **ppStmt,  OUT: Statement handle
+    const char **pzTail     OUT: Pointer to unused portion of zSql
+  );
+
+
+    1. Create the prepared statement object using sqlite3_prepare_v2().
+    2. Bind values to parameters using the sqlite3_bind_*() interfaces.
+    3. Run the SQL by calling sqlite3_step() one or more times.
+    3. Reset the prepared statement using sqlite3_reset() then go back to step 2. Do this zero or more times.
+    4. Destroy the object using sqlite3_finalize().
+
+  */
+
+  int rc = 0;
+  char *dbErrorMsg = 0;
+  struct dbAnswer receiveFromDb = {0, NULL, NULL};
+
+  char *filePath = NULL;
+  char *launcher = NULL;
+
+  //----------------------------------------------------------------------------
+  char dbGetPathStmt[92 + strlen(authorStr) + strlen(titleStr)];
+  sprintf(dbGetPathStmt, "SELECT path FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
+
+  g_free(formatStr);
+  g_free(authorStr);
+  g_free(titleStr);
+
+
+  rc = sqlite3_exec(db, dbGetPathStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    printf("SQL error during selection: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (!get_db_answer_value(&receiveFromDb, "path", &filePath)) {
+      free_db_answer(&receiveFromDb);
+      return;
+    }
+
+    free_db_answer(&receiveFromDb);
+  }
+
+  //----------------------------------------------------------------------------
+  char dbGetLauncherStmt[67];
+  sprintf(dbGetLauncherStmt, "SELECT program FROM launcher_applications WHERE format=%d LIMIT 0,1", format);
+
+  rc = sqlite3_exec(db, dbGetLauncherStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    printf("SQL error during selection: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
+      free(filePath);
+      free_db_answer(&receiveFromDb);
+      return;
+    }
+
+    free_db_answer(&receiveFromDb);
+  }
+
+  //----------------------------------------------------------------------------
+
+  char launchString[strlen(launcher) + strlen(filePath) + 2];
+  sprintf(launchString, "%s %s", launcher, filePath);
+
+  free(filePath);
+  free(launcher);
+
+  // TODO: Is there any other way to start a application instead of system?
+  system(launchString);
+}
 
 gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
   bool pressedDelete = false;
@@ -997,8 +1559,8 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
   if (format != 0) {
 
     //--------------------------------------------------------------------------
-    char *dbErrorMsg = 0;
     bool dbOkay = true;
+    char *dbErrorMsg = NULL;
 
     int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
                        + (author == NULL ? 7 : strlen(author))
@@ -1012,6 +1574,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       &cleanedPath[7],
       cleanedFileName
     );
+
 
     int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
@@ -1073,6 +1636,11 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     gtk_main_iteration_do(true);
     return true;
   }
+
+  free(title);
+  free(author);
+  free(cleanedFileName);
+  free(cleanedPath);
 
   return false;
 }
