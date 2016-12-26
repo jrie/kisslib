@@ -1229,11 +1229,21 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeView
   char launchString[strlen(launcher) + strlen(filePath) + 2];
   sprintf(launchString, "%s %s", launcher, filePath);
 
-  free(filePath);
-  free(launcher);
+  pid_t child_pid = fork();
+  if (child_pid >= 0) {
+    if (child_pid == 0) {
+      execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
+      free(filePath);
+      free(launcher);
+      return;
+    } else {
+      free(filePath);
+      free(launcher);
+      return;
+    }
+  }
 
-  // TODO: Is there any other way to start a application instead of system?
-  system(launchString);
+  //system(launchString);
 }
 
 gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
