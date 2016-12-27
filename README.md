@@ -17,7 +17,7 @@ Entries can be removed by pressing the "Del"-key.
 In order to quickstart any ebook file, you have to go under the menu "Operations" and select "Set launcher applications".
 In this dialog, you can enter for each ebook type a program name, for example "evince" for .pdf files.
 
-After saving and doing so once pdfs and other set then can be opened by clicking in the "Open icon" in the "Open" column of the particular ebook in the list. If thats a pdf, "evince /home/tux/YourPDF.pdf" becomes executed and should happily open the PDF for you in this viewer.
+After saving and doing so once pdfs and other set then can be opened by clicking in the "Open icon" in the "Open" column of the particular ebook in the list or by pressing "Control-S" when the ebook is selected. If thats a pdf, "evince /home/tux/YourPDF.pdf" becomes executed and should happily open the PDF for you in this viewer.
 
 Also the author and title fields can be edited and are saved instantly. In case a title is misleading, it is possible to get the actual file name into the field. To do so, the field has to be emptied (meaning to remove all text in it) and if there is no data present, the actual filename becomes added to the list cell. No data is stored in the database until another edit is made! Please be aware of that.
 
