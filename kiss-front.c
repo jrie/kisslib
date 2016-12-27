@@ -41,6 +41,8 @@ typedef struct dbAnswer {
 //------------------------------------------------------------------------------
 
 void run(GtkApplication*, gpointer);
+void handle_launchCommand(GtkWidget*);
+
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
@@ -122,6 +124,8 @@ int main (int argc, char *argv[]) {
   g_signal_connect(app, "activate", G_CALLBACK (run), NULL);
   g_object_set_data(G_OBJECT(app), "db", db);
   status = g_application_run(G_APPLICATION(app), argc, argv);
+
+  g_object_unref(g_object_get_data(G_OBJECT(app), "dataStore"));
   g_object_unref(app);
 
   // Close db
@@ -382,6 +386,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(ebookList), "row-activated", G_CALLBACK (handle_row_activated), NULL);
   g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
   g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
+  g_object_set_data(G_OBJECT(ebookList), "app", app);
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_object_set_data(G_OBJECT(ebookList), "dataStore", dataStore);
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
@@ -407,8 +412,6 @@ void run(GtkApplication *app, gpointer user_data) {
     gtk_tree_view_column_set_resizable(column, false);
     gtk_tree_view_column_set_min_width(column, 50);
     gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
-
-    g_object_unref(infoIcon);
   }
 
 
@@ -498,6 +501,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
 
   // Menu code end -------------------------------------------------------------
+  g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
   gtk_widget_show_all(window);
 
@@ -1123,26 +1127,19 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   return true;
 }
 
-#define SHELL "/bin/sh"
-
 //------------------------------------------------------------------------------
-void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer user_data) {
-  int offset = gtk_tree_view_column_get_x_offset(column);
-  if (offset != 0) {
-    return;
-  }
-
-  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
-  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
+void handle_launchCommand(GtkWidget* widget) {
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
   GtkTreeIter iter;
   gchar *formatStr;
   gchar *authorStr;
   gchar *titleStr;
 
+  sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
+
   gtk_tree_selection_get_selected(selection, &model, &iter);
   gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
-
-  sqlite3 *db = g_object_get_data(G_OBJECT(tree_view), "db");
 
   int format = 0;
   if (strcmp(formatStr, "pdf") == 0) {
@@ -1157,25 +1154,7 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeView
     return;
   }
 
-
-  /*
-  int sqlite3_prepare_v2(
-    sqlite3 *db,            Database handle
-    const char *zSql,       SQL statement, UTF-8 encoded
-    int nByte,              Maximum length of zSql in bytes.
-    sqlite3_stmt **ppStmt,  OUT: Statement handle
-    const char **pzTail     OUT: Pointer to unused portion of zSql
-  );
-
-
-    1. Create the prepared statement object using sqlite3_prepare_v2().
-    2. Bind values to parameters using the sqlite3_bind_*() interfaces.
-    3. Run the SQL by calling sqlite3_step() one or more times.
-    3. Reset the prepared statement using sqlite3_reset() then go back to step 2. Do this zero or more times.
-    4. Destroy the object using sqlite3_finalize().
-
-  */
-
+  //----------------------------------------------------------------------------
   int rc = 0;
   char *dbErrorMsg = 0;
   struct dbAnswer receiveFromDb = {0, NULL, NULL};
@@ -1190,7 +1169,6 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeView
   g_free(formatStr);
   g_free(authorStr);
   g_free(titleStr);
-
 
   rc = sqlite3_exec(db, dbGetPathStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
   if (rc != SQLITE_OK) {
@@ -1232,9 +1210,15 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeView
   pid_t child_pid = fork();
   if (child_pid >= 0) {
     if (child_pid == 0) {
-      execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
       free(filePath);
       free(launcher);
+      GtkApplication *app = g_object_get_data(G_OBJECT(widget), "app");
+
+      g_object_unref(g_object_get_data(G_OBJECT(widget), "dataStore"));
+      g_object_unref(G_OBJECT(app));
+      g_application_quit(G_APPLICATION(app));
+
+      execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
       return;
     } else {
       free(filePath);
@@ -1243,7 +1227,20 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath *path, GtkTreeView
     }
   }
 
+  free(filePath);
+  free(launcher);
+
   //system(launchString);
+  return;
+}
+
+void handle_row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer user_data) {
+  if (gtk_tree_view_column_get_x_offset(column) != 0) {
+    return;
+  }
+
+  handle_launchCommand(GTK_WIDGET(tree_view));
+  return;
 }
 
 gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
@@ -1253,6 +1250,13 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
     case 65535:
       // Delete key
       pressedDelete = true;
+      break;
+    case 115:
+      // S key
+      if (event->state == 20) { // Strg Pressed
+        handle_launchCommand(widget);
+        return true;
+      }
       break;
     default:
       //printf("key pressed: %u - %d\n", event->keyval, event->state);
