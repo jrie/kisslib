@@ -60,9 +60,9 @@ void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
 
 void menuhandle_meEditEntry(GtkMenuItem*, gpointer);
-void open_edit_window(GObject *);
+void open_edit_window(GObject*);
 void edit_entry_close(GtkButton*, gpointer);
-
+void edit_entry_save_data(GtkButton*, gpointer);
 
 void fileChooser_close(GtkButton*, gpointer);
 void fileChooser_importFiles(GtkButton*, gpointer);
@@ -191,11 +191,13 @@ void free_db_answer(struct dbAnswer *answerData) {
     free(answerData->data[i]);
     free(answerData->columnNames[i]);
   }
-/*
+
   free(answerData->data);
   free(answerData->columnNames);
-*/
+
   answerData->count = 0;
+  answerData->data = NULL;
+  answerData->columnNames = NULL;
 }
 
 
@@ -376,7 +378,6 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(progressBar), "margin-top", 8, "margin-bottom", 5, "margin-left", 15, "margin-right", 15, NULL);
   gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progressBar), true);
   gtk_container_add(GTK_CONTAINER(progressRevealer), progressBar);
-  //gtk_grid_attach(GTK_GRID(grid), progressBar, 0, 2, 10, 1);
 
   GtkWidget *statusBar = gtk_statusbar_new();
   gtk_grid_attach(GTK_GRID(grid), statusBar, 0, 3, 10, 1);
@@ -387,11 +388,13 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
   g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
   g_object_set_data(G_OBJECT(ebookList), "app", app);
+  g_object_set_data(G_OBJECT(ebookList), "appWindow", window);
   g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_object_set_data(G_OBJECT(ebookList), "dataStore", dataStore);
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
   g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
+  g_object_set_data(G_OBJECT(ebookList), "treeview", ebookList);
 
   //----------------------------------------------------------------------------
 
@@ -486,6 +489,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meSetLauncher), "activate", G_CALLBACK(menuhandle_meSetLauncher), NULL);
 
   g_object_set_data(G_OBJECT(meEditEntry), "appWindow", window);
+  g_object_set_data(G_OBJECT(meEditEntry), "treeview", ebookList);
   g_object_set_data(G_OBJECT(meEditEntry), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_signal_connect(G_OBJECT(meEditEntry), "activate", G_CALLBACK(menuhandle_meEditEntry), NULL);
 
@@ -504,9 +508,6 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
   gtk_widget_show_all(window);
-
-  // TODO: On exit, the application should unref the dataStore
-  //g_object_unref(dataStore);
 }
 
 //------------------------------------------------------------------------------
@@ -586,7 +587,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryPDF), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
-  gtk_widget_set_tooltip_text(entryPDF, "Application to open the .pdf files.");
+  gtk_widget_set_tooltip_text(entryPDF, "Application to open .pdf files.");
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
 
 
@@ -599,7 +600,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryEPUB), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
-  gtk_widget_set_tooltip_text(entryEPUB, "Application to open the .epub files.");
+  gtk_widget_set_tooltip_text(entryEPUB, "Application to open .epub files.");
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
 
   GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
@@ -611,7 +612,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryMOBI), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
-  gtk_widget_set_tooltip_text(entryMOBI, "Application to open the .mobi files.");
+  gtk_widget_set_tooltip_text(entryMOBI, "Application to open .mobi files.");
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
 
 
@@ -624,7 +625,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryCHM), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
-  gtk_widget_set_tooltip_text(entryCHM, "Application to open the .chm files.");
+  gtk_widget_set_tooltip_text(entryCHM, "Application to open .chm files.");
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
 
   if (pdfHandler != NULL) {
@@ -906,14 +907,127 @@ void open_edit_window(GObject *dataItem) {
 
   GtkWidget *saveButton = gtk_button_new_with_label("Save data");
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
+
   g_object_set_data(G_OBJECT(saveButton), "rootWindow", editWindow);
   g_object_set_data(G_OBJECT(saveButton), "treeview", g_object_get_data(G_OBJECT(dataItem), "treeview"));
   g_object_set_data(G_OBJECT(saveButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
-  // TODO: Start here
-  //g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(editData_save_data), NULL);
+  g_object_set_data(G_OBJECT(saveButton), "entryPath", entryPath);
+  g_object_set_data(G_OBJECT(saveButton), "entryFileName", entryFileName);
+  g_object_set_data(G_OBJECT(saveButton), "entryFormat", entryFormat);
+  g_object_set_data(G_OBJECT(saveButton), "entryAuthor", entryAuthor);
+  g_object_set_data(G_OBJECT(saveButton), "entryTitle", entryTitle);
+  g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(edit_entry_save_data), NULL);
+
+  //----------------------------------------------------------------------------
+  GtkWidget *treeView = g_object_get_data(G_OBJECT(dataItem), "treeview");
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeView));
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeView));
+  GtkTreeIter iter;
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
+
+  gtk_tree_selection_get_selected(selection, &model, &iter);
+  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+  int format = 0;
+  if (strcmp(formatStr, "pdf") == 0) {
+    format = 1;
+  } else if (strcmp(formatStr, "epub") == 0) {
+    format = 2;
+  } else if (strcmp(formatStr, "mobi") == 0) {
+    format = 3;
+  } else if (strcmp(formatStr, "chm") == 0) {
+    format = 4;
+  } else {
+    return;
+  }
+
+  sqlite3* db = g_object_get_data(G_OBJECT(dataItem), "db");
+
+  char *filePath = NULL;
+  char *fileName = NULL;
+  char *fileFormat = NULL;
+  char *fileAuthor = NULL;
+  char *fileTitle = NULL;
+
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+  char dbStmt[84 + strlen(authorStr) + strlen(titleStr)];
+  sprintf(dbStmt, "SELECT * FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
+
+  rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    printf("SQL error during select: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (receiveFromDb.count == 0) {
+      return;
+    }
+
+    get_db_answer_value(&receiveFromDb, "path", &filePath);
+    get_db_answer_value(&receiveFromDb, "filename", &fileName);
+    get_db_answer_value(&receiveFromDb, "format", &fileFormat);
+    get_db_answer_value(&receiveFromDb, "author", &fileAuthor);
+    get_db_answer_value(&receiveFromDb, "title", &fileTitle);
+    free_db_answer(&receiveFromDb);
+
+    char fileType[5];
+    if (fileFormat != NULL) {
+      switch (atoi(fileFormat)) {
+        case 1:
+          strcpy(fileType, "pdf");
+          break;
+        case 2:
+          strcpy(fileType, "epub");
+          break;
+        case 3:
+          strcpy(fileType, "mobi");
+          break;
+        case 4:
+          strcpy(fileType, "chm");
+          break;
+        default:
+          break;
+      }
+
+    }
+
+    if (filePath != NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryPath), filePath);
+    }
+
+    if (fileName != NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryFileName), fileName);
+    }
+
+    if (fileFormat != NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryFormat), fileType);
+    }
+
+    if (fileAuthor != NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryAuthor), fileAuthor);
+    }
+
+    if (fileTitle != NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryTitle), fileTitle);
+    }
+  }
+
+  g_free(formatStr);
+  g_free(authorStr);
+  g_free(titleStr);
+
+  //----------------------------------------------------------------------------
+
+
 
   gtk_window_set_type_hint(GTK_WINDOW(editWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
   gtk_window_activate_focus(GTK_WINDOW(editWindow));
+  gtk_entry_grab_focus_without_selecting(GTK_ENTRY(entryAuthor));
+
   gtk_widget_show_all(editWindow);
 
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(dataItem), "appWindow")), GTK_WINDOW(editWindow));
@@ -924,6 +1038,115 @@ void open_edit_window(GObject *dataItem) {
 
 void edit_entry_close(GtkButton *button, gpointer user_data) {
   gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+void edit_entry_save_data(GtkButton *button, gpointer user_data) {
+  GtkTreeView *treeview = g_object_get_data(G_OBJECT(button), "treeview");
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(treeview), "dataStore");
+
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+
+  GtkEntry *entryPath = g_object_get_data(G_OBJECT(button), "entryPath");
+  //GtkEntry *entryFileName = g_object_get_data(G_OBJECT(button), "entryFileName");
+  //GtkEntry *entryFormat = g_object_get_data(G_OBJECT(button), "entryFormat");
+  GtkEntry *entryAuthor = g_object_get_data(G_OBJECT(button), "entryAuthor");
+  GtkEntry *entryTitle = g_object_get_data(G_OBJECT(button), "entryTitle");
+
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+
+  const gchar *path = gtk_entry_get_text(entryPath);
+  const gchar *author = gtk_entry_get_text(entryAuthor);
+  const gchar *title = gtk_entry_get_text(entryTitle);
+
+  //----------------------------------------------------------------------------
+
+  char *authorStripped = malloc((256 + 1) * sizeof(char));
+  char *titleStripped = malloc((256 + 1) * sizeof(char));
+
+  char key = '\0';
+  int readPos = 0;
+  int writePos = 0;
+  bool hasValidChar = false;
+
+  while((key = author[readPos++]) != '\0') {
+      if (key == '"') {
+        if (hasValidChar) {
+          key = ' ';
+        } else {
+          continue;
+        }
+      } else if (!hasValidChar && key == ' ') {
+        continue;
+      }
+
+      if (key != ' ') {
+        hasValidChar = true;
+      }
+
+      authorStripped[writePos++] = key;
+  }
+
+  authorStripped[writePos] = '\0';
+
+  //----------------------------------------------------------------------------
+  key = '\0';
+  readPos = 0;
+  writePos = 0;
+  hasValidChar = false;
+
+  while((key = title[readPos++]) != '\0') {
+      if (key == '"') {
+        if (hasValidChar) {
+          key = ' ';
+        } else {
+          continue;
+        }
+      } else if (!hasValidChar && key == ' ') {
+        continue;
+      }
+
+      if (key != ' ') {
+        hasValidChar = true;
+      }
+
+      titleStripped[writePos++] = key;
+  }
+
+  titleStripped[writePos] = '\0';
+
+
+  if (strlen(titleStripped) == 0) {
+    // NOTE: Should we add a popup that a title has to be entered in order to save?
+    return;
+  }
+
+  if (strlen(authorStripped) == 0) {
+    sprintf(authorStripped, "Unknown");
+  }
+
+  char dbStmt[91 + strlen(authorStripped) + strlen(titleStripped) + strlen(path)];
+  sprintf(dbStmt, "UPDATE ebook_collection SET author = trim(\"%s\"), title = trim(\"%s\") WHERE path == \"%s\" LIMIT 0,1", authorStripped, titleStripped, path);
+
+  rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    printf("SQL error during update: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+    GtkTreeIter iter;
+
+    gtk_tree_selection_get_selected(selection, &model, &iter);
+    gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, authorStripped, TITLE_COLUMN, titleStripped, -1);
+  }
+
+  free(authorStripped);
+  free(titleStripped);
+
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+
+  return;
 }
 
 //------------------------------------------------------------------------------
@@ -1281,14 +1504,15 @@ void handle_launchCommand(GtkWidget* widget) {
   pid_t child_pid = fork();
   if (child_pid >= 0) {
     if (child_pid == 0) {
-      GtkApplication *app = g_object_get_data(G_OBJECT(widget), "app");
+      free(filePath);
+      free(launcher);
 
+      GtkApplication *app = g_object_get_data(G_OBJECT(widget), "app");
       g_object_unref(g_object_get_data(G_OBJECT(widget), "dataStore"));
       g_object_unref(G_OBJECT(app));
       g_application_quit(G_APPLICATION(app));
+
       execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
-      free(filePath);
-      free(launcher);
       return;
     } else {
       free(filePath);
@@ -1328,6 +1552,12 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
         return true;
       }
       break;
+    case 101:
+      // E key
+      if (event->state == 20) {
+        open_edit_window(G_OBJECT(widget));
+        return true;
+      }
     default:
       //printf("key pressed: %u - %d\n", event->keyval, event->state);
       return false;
