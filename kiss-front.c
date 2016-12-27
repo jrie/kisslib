@@ -525,6 +525,52 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_window_set_default_size(GTK_WINDOW(launcherWindow), 640, 400);
 
   //----------------------------------------------------------------------------
+  sqlite3* db = g_object_get_data(G_OBJECT(menuitem), "db");
+
+  char *pdfHandler = NULL;
+  char *epubHandler = NULL;
+  char *mobiHandler = NULL;
+  char *chmHandler = NULL;
+
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+  char **pointer = NULL;
+
+  for (int i = 1; i < 5; ++i) {
+    char getHandlerStmt[67];
+    sprintf(getHandlerStmt, "SELECT program FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
+
+
+    rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      printf("SQL error during selection: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      switch(i) {
+        case 1:
+          pointer = &pdfHandler;
+          break;
+        case 2:
+          pointer = &epubHandler;
+          break;
+        case 3:
+          pointer = &mobiHandler;
+          break;
+        case 4:
+          pointer = &chmHandler;
+        default:
+          break;
+      }
+
+      get_db_answer_value(&receiveFromDb, "program", pointer);
+      free_db_answer(&receiveFromDb);
+    }
+  }
+
+
+  //----------------------------------------------------------------------------
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
   gtk_container_add(GTK_CONTAINER(launcherWindow), box);
@@ -540,7 +586,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryPDF), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
-  gtk_widget_set_tooltip_text(entryPDF, "Application and command to open the .pdf files.");
+  gtk_widget_set_tooltip_text(entryPDF, "Application to open the .pdf files.");
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
 
 
@@ -553,7 +599,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryEPUB), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
-  gtk_widget_set_tooltip_text(entryEPUB, "Application and command to open the .epub files.");
+  gtk_widget_set_tooltip_text(entryEPUB, "Application to open the .epub files.");
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
 
   GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
@@ -565,7 +611,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryMOBI), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
-  gtk_widget_set_tooltip_text(entryMOBI, "Application and command to open the .mobi files.");
+  gtk_widget_set_tooltip_text(entryMOBI, "Application to open the .mobi files.");
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
 
 
@@ -578,8 +624,29 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(entryCHM), "margin", 6, NULL);
   gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 64);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
-  gtk_widget_set_tooltip_text(entryCHM, "Application and command to open the .chm files.");
+  gtk_widget_set_tooltip_text(entryCHM, "Application to open the .chm files.");
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
+
+  if (pdfHandler != NULL) {
+    gtk_entry_set_text(GTK_ENTRY(entryPDF), pdfHandler);
+    free(pdfHandler);
+  }
+
+  if (epubHandler != NULL) {
+    gtk_entry_set_text(GTK_ENTRY(entryEPUB), epubHandler);
+    free(epubHandler);
+  }
+
+  if (mobiHandler != NULL) {
+    gtk_entry_set_text(GTK_ENTRY(entryMOBI), mobiHandler);
+    free(mobiHandler);
+  }
+
+  if (chmHandler != NULL) {
+    gtk_entry_set_text(GTK_ENTRY(entryCHM), chmHandler);
+    free(chmHandler);
+  }
+  //----------------------------------------------------------------------------
 
   //----------------------------------------------------------------------------
   GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
@@ -605,6 +672,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
 
   gtk_window_set_type_hint(GTK_WINDOW(launcherWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
   gtk_window_activate_focus(GTK_WINDOW(launcherWindow));
+  gtk_entry_grab_focus_without_selecting(GTK_ENTRY(entryPDF));
   gtk_widget_show_all(launcherWindow);
 
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(launcherWindow));
@@ -1213,15 +1281,14 @@ void handle_launchCommand(GtkWidget* widget) {
   pid_t child_pid = fork();
   if (child_pid >= 0) {
     if (child_pid == 0) {
-      free(filePath);
-      free(launcher);
       GtkApplication *app = g_object_get_data(G_OBJECT(widget), "app");
 
       g_object_unref(g_object_get_data(G_OBJECT(widget), "dataStore"));
       g_object_unref(G_OBJECT(app));
       g_application_quit(G_APPLICATION(app));
-
       execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
+      free(filePath);
+      free(launcher);
       return;
     } else {
       free(filePath);
@@ -1513,7 +1580,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     if (strcmp(lowerFiletype, ".pdf") == 0) {
       format = 1;
 
-      if (cleanedPath[0] != '/') {
+      if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_pdf(&cleanedPath[7], &fileData);
       } else {
         retVal = read_pdf(cleanedPath, &fileData);
@@ -1521,7 +1588,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     } else if (strcmp(lowerFiletype, ".epub") == 0) {
       format = 2;
 
-      if (cleanedPath[0] != '/') {
+      if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_epub(&cleanedPath[7], &fileData);
       } else {
         retVal = read_epub(cleanedPath, &fileData);
@@ -1529,7 +1596,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     } else if (strcmp(lowerFiletype, ".mobi") == 0) {
       format = 3;
 
-      if (cleanedPath[0] != '/') {
+      if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_mobi(&cleanedPath[7], &fileData);
       } else {
         retVal = read_mobi(cleanedPath, &fileData);
@@ -1537,7 +1604,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     } else if (strcmp(lowerFiletype, ".chm") == 0) {
       format = 4;
 
-      if (cleanedPath[0] != '/') {
+      if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_chm(&cleanedPath[7], &fileData);
       } else {
         retVal = read_chm(cleanedPath, &fileData);
@@ -1588,7 +1655,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
-      &cleanedPath[7],
+      cleanedPath,
       cleanedFileName
     );
 
