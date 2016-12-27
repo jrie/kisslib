@@ -472,7 +472,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *seperator = gtk_separator_menu_item_new();
   GtkWidget *meSetLauncher = gtk_menu_item_new_with_label("Set launcher applications");
   GtkWidget *meImportFiles = gtk_menu_item_new_with_label("Import files and folders");
-  GtkWidget *meEditEntry = gtk_menu_item_new_with_label("Edit selected entry");
+  GtkWidget *meEditEntry = gtk_menu_item_new_with_label("Edit ebook details");
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetLauncher);
@@ -762,7 +762,7 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *editWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(editWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(editWindow), "KISS Ebook Starter - Set launcher applications");
+  gtk_window_set_title(GTK_WINDOW(editWindow), "KISS Ebook Starter - Edit ebook details");
   gtk_window_set_default_size(GTK_WINDOW(editWindow), 640, 400);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
@@ -790,21 +790,24 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *entryPath = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), "Complete path");
-  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename.");
+  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename. This is not changeable.");
   g_object_set(G_OBJECT(entryPath), "editable", false, NULL);
 
   GtkWidget *entryFileName = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFileName), 256);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryFileName), "Filename");
+  gtk_widget_set_tooltip_text(entryFileName, "The file name which is not changeable.");
   g_object_set(G_OBJECT(entryFileName), "editable", false, NULL);
 
   GtkWidget *entryFormat = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFormat), 5);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryFormat), "Format");
+  gtk_widget_set_tooltip_text(entryFormat, "The ebook format which is not changeable.");
   g_object_set(G_OBJECT(entryFormat), "editable", false, NULL);
 
   GtkWidget *entryAuthor = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryAuthor), 256);
+  gtk_widget_set_tooltip_text(entryAuthor, "The ebook author(s) displayed in KISS Ebook.");
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), "Author(s)");
 
   GtkWidget *entryTitle = gtk_entry_new();
