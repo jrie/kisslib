@@ -6,7 +6,13 @@ kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook lau
 
 Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go through an ebook collection and launching an user-defined viewer for the filetype. While displaying general information about a ebook file like format, author and title.
 
-### Usage and file support
+### File support and usage
+
+Supported file types which are handled are:
+* pdf
+* epub
+* mobi
+* chm
 
 In order to make use of KISS Ebook, you have to first import any supported ebook files.
 Its possible to import files and folders using the menu "Import files and folders" or by dragging and dropping files and or folders onto the ebook list, data then is processed in order to display information like author, title and file format when available of the supported ebook file formats.
@@ -19,17 +25,13 @@ In this dialog, you can enter for each ebook type a program name, for example "e
 
 After saving and doing so once pdfs and other set then can be opened by clicking in the "Open icon" in the "Open" column of the particular ebook in the list or by pressing "Control-S" when the ebook is selected. If thats a pdf, "evince /home/tux/YourPDF.pdf" becomes executed and should happily open the PDF for you in this viewer.
 
-Also the author and title fields can be edited and are saved instantly. In case a title is misleading, it is possible to get the actual file name into the field. To do so, the field has to be emptied (meaning to remove all text in it) and if there is no data present, the actual filename becomes added to the list cell. No data is stored in the database until another edit is made! Please be aware of that.
+Also the author and title fields can be edited and are saved instantly in the table view or by pressing "Control-E", this will open the edit ebook details dialog, which is also available in "Operations" > "Edit ebook details".
 
-If the author field is cleared, the generel placeholder "Unknown" is set and directly saved to the database.
+In case a title is misleading, it is possible to get the actual file name into the field when editing in the table view. To do so, the field has to be emptied (meaning to remove all text in it) and if there is no data present, the actual filename becomes added to the list cell. No data is stored in the database until another edit is made! Please be aware of that.
 
-For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed.
+If the author field is cleared in the table view, the generel placeholder "Unknown" is set and directly saved to the database.
 
-Supported file types are:
-* pdf
-* epub
-* mobi
-* chm
+For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
 ### Requirements
 * libzip / libzipdev for compiling (used for epub support)
