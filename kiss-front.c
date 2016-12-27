@@ -69,7 +69,6 @@ void fileChooser_importFiles(GtkButton*, gpointer);
 
 // Db related
 int add_db_data_to_store(void*, int, char**, char**);
-int add_fileName_from_db(void*, int, char**, char**);
 
 int fill_db_answer(void*, int, char**, char**);
 void free_db_answer(struct dbAnswer*);
@@ -202,15 +201,6 @@ void free_db_answer(struct dbAnswer *answerData) {
 
 
 //------------------------------------------------------------------------------
-
-int add_fileName_from_db(void* dbHandleData, int argc, char **argv, char **columnNames) {
-  if (argc == 1) {
-    struct dbHandlingData *dbData = (dbHandlingData*) dbHandleData;
-    gtk_list_store_set(dbData->store, dbData->iter, TITLE_COLUMN, argv[0], -1);
-  }
-
-  return 0;
-}
 
 int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNames) {
   GtkListStore *store = GTK_LIST_STORE(dataStore);
@@ -711,6 +701,7 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
   for (int i = 0; i < 4; ++i) {
     readPos = 0;
     writePos = 0;
+    bool hasData = false;
 
     while(true) {
       switch (i) {
@@ -732,8 +723,10 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
 
       if (key == '\0') {
         break;
-      } else if (key == ' ') {
+      } else if (!hasData && key == ' ') {
         continue;
+      } else {
+        hasData = true;
       }
 
       switch (i) {
@@ -1691,13 +1684,15 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     format = 3;
   } else if (strcmp(formatStr, "chm") == 0) {
     format = 4;
+  } else {
+    return false;
   }
 
   char *dbErrorMsg = 0;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
   if (strlen(new_text) != 0) {
     char stmt[102+strlen(authorStr)+strlen(titleStr)+strlen(new_text)];
-    sprintf(stmt, "UPDATE ebook_collection SET title = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", new_text, format, authorStr, titleStr);
+    sprintf(stmt, "UPDATE ebook_collection SET title = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", new_text, format, authorStr, titleStr);
     int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -1707,14 +1702,30 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
       gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, new_text, -1);
     }
   } else {
-    struct dbHandlingData passToDB = { model, dataStore, &iter, NULL };
+    struct dbAnswer dbAnswerData = { 0, NULL, NULL };
     char stmt[101 + strlen(authorStr) + strlen(titleStr)];
-    sprintf(stmt, "SELECT filename FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", format, authorStr, titleStr);
-    int rc = sqlite3_exec(db, stmt, add_fileName_from_db, (void*) &passToDB, &dbErrorMsg);
+    sprintf(stmt, "SELECT filename FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
+    int rc = sqlite3_exec(db, stmt, fill_db_answer, (void*) &dbAnswerData, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
       printf("SQL error: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
+    } else {
+      char *fileName = NULL;
+      if (get_db_answer_value(&dbAnswerData, "filename", &fileName)) {
+        char updateStmt[70+(strlen(fileName)*2)];
+        sprintf(updateStmt, "UPDATE ebook_collection SET title = \"%s\" WHERE filename == \"%s\" LIMIT 0,1", fileName, fileName);
+        int rc = sqlite3_exec(db, updateStmt, NULL, NULL, &dbErrorMsg);
+
+        if (rc != SQLITE_OK) {
+          printf("SQL error while updating: %s\n", dbErrorMsg);
+          sqlite3_free(dbErrorMsg);
+        } else {
+          gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, fileName, -1);
+        }
+
+        free(fileName);
+      }
     }
   }
 
