@@ -55,5 +55,6 @@ And then start using "./kisslib".
 
 ### Known issues
 * kisslib is known not to run on Debian Jessie at present
+
 As only libzip2 is present and a version of GTK3 which is not compatible with the current code too, the easiest solution at present would be, to upgrade to Stretch/Testing of Debian. But I will try to release a version, which is compatible to those libraries provided in Jessie, if possible.
 
