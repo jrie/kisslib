@@ -34,8 +34,8 @@ For a quick search in the collection, it is possible to use type ahead find on t
 ### Requirements
 * libzip / libzipdev for compiling (used for epub support)
 * libsqlite3-dev (as datastore)
+* libgtk-3-dev (GUI)
 * Unix like system (having GNU C extensions, for directory listing)
-* GTK3 (GUI)
 * gcc - to compile
 
 ### Compiling
@@ -45,11 +45,15 @@ Compile using gcc:
 
 And then run "./kisslib" to open kisslib.
 
-### Or
-Download "kisslib" which is a ELF Linux binary and install the following dependencies to run it, by installing the following requirements:
+### Or to directly use kisslib
+Download "kisslib" which is a ELF Linux binary and install the following dependencies to run it:
 * libzip4
 * libsqlite3-0
-* GTK3
+* libgtk-3-0
 
-And then run "./kisslib".
+And then start using "./kisslib".
+
+### Known issues
+* kisslib is known not to run on Debian Jessie at present
+As only libzip2 is present and a version of GTK3 which is not compatible with the current code too, the easiest solution at present would be, to upgrade to Stretch/Testing of Debian. But I will try to release a version, which is compatible to those libraries provided in Jessie, if possible.
 
