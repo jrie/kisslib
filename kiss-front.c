@@ -38,6 +38,11 @@ typedef struct dbAnswer {
   char **columnNames;
 } dbAnswer;
 
+typedef struct argumentStore {
+  unsigned int count;
+  char **arguments;
+} argumentStore;
+
 //------------------------------------------------------------------------------
 
 void run(GtkApplication*, gpointer);
@@ -56,6 +61,11 @@ int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, uns
 void menuhandle_meQuit(GtkMenuItem*, gpointer);
 void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
 void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
+
+bool retrieve_handler_arguments(struct argumentStore*, const char *);
+void free_handler_arguments(struct argumentStore*);
+int trim(const char*, char**);
+
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
 
@@ -520,19 +530,27 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   sqlite3* db = g_object_get_data(G_OBJECT(menuitem), "db");
 
   char *pdfHandler = NULL;
+  char *pdfArgs = NULL;
+
   char *epubHandler = NULL;
+  char *epubArgs = NULL;
+
   char *mobiHandler = NULL;
+  char *mobiArgs = NULL;
+
   char *chmHandler = NULL;
+  char *chmArgs = NULL;
 
   int rc = 0;
   char *dbErrorMsg = NULL;
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
   char **pointer = NULL;
+  char **pointerArgs = NULL;
 
   for (int i = 1; i < 5; ++i) {
     char getHandlerStmt[67];
-    sprintf(getHandlerStmt, "SELECT program FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
+    sprintf(getHandlerStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
 
 
     rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
@@ -543,20 +561,25 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
       switch(i) {
         case 1:
           pointer = &pdfHandler;
+          pointerArgs = &pdfArgs;
           break;
         case 2:
           pointer = &epubHandler;
+          pointerArgs = &epubArgs;
           break;
         case 3:
           pointer = &mobiHandler;
+          pointerArgs = &mobiArgs;
           break;
         case 4:
           pointer = &chmHandler;
+          pointerArgs = &chmArgs;
         default:
           break;
       }
 
       get_db_answer_value(&receiveFromDb, "program", pointer);
+      get_db_answer_value(&receiveFromDb, "args", pointerArgs);
       free_db_answer(&receiveFromDb);
     }
   }
@@ -576,7 +599,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(box), labelPDF);
 
   GtkWidget *entryPDF = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 127);
+  gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
   gtk_widget_set_tooltip_text(entryPDF, "Application to open .pdf files. This could be: \"evince\"");
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
@@ -587,7 +610,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(box), labelEPUB);
 
   GtkWidget *entryEPUB = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 127);
+  gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
   gtk_widget_set_tooltip_text(entryEPUB, "Application to open .epub files. This could be: \"fbreader\"");
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
@@ -598,7 +621,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(box), labelMOBI);
 
   GtkWidget *entryMOBI = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 127);
+  gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
   gtk_widget_set_tooltip_text(entryMOBI, "Application to open .mobi files. This could be: \"fbreader\"");
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
@@ -610,28 +633,73 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(box), labelCHM);
 
   GtkWidget *entryCHM = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 127);
+  gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
   gtk_widget_set_tooltip_text(entryCHM, "Application to open .chm files. This could be: \"xchm\"");
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
 
   if (pdfHandler != NULL) {
-    gtk_entry_set_text(GTK_ENTRY(entryPDF), pdfHandler);
+    if (pdfArgs == NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryPDF), pdfHandler);
+    } else {
+      char commandString[strlen(pdfHandler) + strlen(pdfArgs) + 2];
+      strcpy(commandString, pdfHandler);
+      strncat(commandString, " ", 1);
+      strcat(commandString, pdfArgs);
+      gtk_entry_set_text(GTK_ENTRY(entryPDF), commandString);
+
+      free(pdfArgs);
+    }
+
     free(pdfHandler);
   }
 
   if (epubHandler != NULL) {
-    gtk_entry_set_text(GTK_ENTRY(entryEPUB), epubHandler);
+    if (epubArgs == NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryEPUB), epubHandler);
+    } else {
+      char commandString[strlen(epubHandler) + strlen(epubArgs) + 2];
+      strcpy(commandString, epubHandler);
+      strncat(commandString, " ", 1);
+      strcat(commandString, epubArgs);
+      gtk_entry_set_text(GTK_ENTRY(entryEPUB), commandString);
+
+      free(epubArgs);
+    }
+
     free(epubHandler);
   }
 
   if (mobiHandler != NULL) {
-    gtk_entry_set_text(GTK_ENTRY(entryMOBI), mobiHandler);
+    if (mobiArgs == NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryMOBI), mobiHandler);
+    } else {
+      char commandString[strlen(mobiHandler) + strlen(mobiArgs) + 2];
+      strcpy(commandString, mobiHandler);
+      strncat(commandString, " ", 1);
+      strcat(commandString, mobiArgs);
+      gtk_entry_set_text(GTK_ENTRY(entryMOBI), commandString);
+
+      free(mobiArgs);
+    }
+
     free(mobiHandler);
   }
 
   if (chmHandler != NULL) {
-    gtk_entry_set_text(GTK_ENTRY(entryCHM), chmHandler);
+    if (chmArgs == NULL) {
+      gtk_entry_set_text(GTK_ENTRY(entryCHM), chmHandler);
+    } else {
+      char commandString[strlen(chmHandler) + strlen(chmArgs) + 2];
+      strcpy(commandString, chmHandler);
+      strncat(commandString, " ", 1);
+      strcat(commandString, chmArgs);
+      gtk_entry_set_text(GTK_ENTRY(entryCHM), commandString);
+
+      free(chmArgs);
+    }
+
+
     free(chmHandler);
   }
   //----------------------------------------------------------------------------
@@ -681,77 +749,15 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
   const gchar *mobiHandler = gtk_entry_get_text(entryMOBI);
   const gchar *chmHandler = gtk_entry_get_text(entryCHM);
 
-  char key = '\0';
-  unsigned int readPos = 0;
-  unsigned int writePos = 0;
+  argumentStore handlerDataPDF = {0, NULL};
+  argumentStore handlerDataEPUB = {0, NULL};
+  argumentStore handlerDataMOBI = {0, NULL};
+  argumentStore handlerDataCHM = {0, NULL};
 
-  char pdfHandle[128];
-  char epubHandle[128];
-  char mobiHandle[128];
-  char chmHandle[128];
-
-  bool pdfHasData = false;
-  bool epubHasData = false;
-  bool mobiHasData = false;
-  bool chmHasData = false;
-
-  for (int i = 0; i < 4; ++i) {
-    readPos = 0;
-    writePos = 0;
-    bool hasData = false;
-
-    while(true) {
-      switch (i) {
-        case 0:
-          key = pdfHandler[readPos++];
-          break;
-        case 1:
-          key = epubHandler[readPos++];
-          break;
-        case 2:
-          key = mobiHandler[readPos++];
-          break;
-        case 3:
-          key = chmHandler[readPos++];
-          break;
-        default:
-          break;
-      }
-
-      if (key == '\0') {
-        break;
-      } else if (!hasData && key == ' ') {
-        continue;
-      } else {
-        hasData = true;
-      }
-
-      switch (i) {
-        case 0:
-          pdfHandle[writePos++] = key;
-          pdfHandle[writePos] = '\0';
-          pdfHasData = true;
-          break;
-        case 1:
-          epubHandle[writePos++] = key;
-          epubHandle[writePos] = '\0';
-          epubHasData = true;
-          break;
-        case 2:
-          mobiHandle[writePos++] = key;
-          mobiHandle[writePos] = '\0';
-          mobiHasData = true;
-          break;
-        case 3:
-          chmHandle[writePos++] = key;
-          chmHandle[writePos] = '\0';
-          chmHasData = true;
-          break;
-        default:
-          break;
-      }
-    }
-  }
+  retrieve_handler_arguments(&handlerDataPDF, pdfHandler);
+  retrieve_handler_arguments(&handlerDataEPUB, epubHandler);
+  retrieve_handler_arguments(&handlerDataMOBI, mobiHandler);
+  retrieve_handler_arguments(&handlerDataCHM, chmHandler);
 
   //----------------------------------------------------------------------------
   char *dbErrorMsg = NULL;
@@ -771,21 +777,43 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
   // TODO: Add parameter parsing here which are stored in 'args'
 
   for (int i = 1; i < 5; ++i) {
-    if (i == 1 && pdfHasData) {
-      dbStmt = calloc(sizeof(char), 77 + strlen(pdfHandle));
-      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", NULL)", i, pdfHandle);
-    } else if (i == 2 && epubHasData) {
-      dbStmt = calloc(sizeof(char), 77 + strlen(epubHandle));
-      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", NULL)", i, epubHandle);
-    } else if (i == 3 && mobiHasData) {
-      dbStmt = calloc(sizeof(char), 77 + strlen(mobiHandle));
-      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", NULL)", i, mobiHandle);
-    } else if (i == 4 && chmHasData) {
-      dbStmt = calloc(sizeof(char), 77 + strlen(chmHandle));
-      sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", NULL)", i, chmHandle);
-    } else {
+    argumentStore *handler = NULL;
+
+    switch(i) {
+      case 1:
+        handler = &handlerDataPDF;
+        break;
+      case 2:
+        handler = &handlerDataEPUB;
+        break;
+      case 3:
+        handler = &handlerDataMOBI;
+        break;
+      case 4:
+        handler = &handlerDataCHM;
+        break;
+      default:
+        break;
+    }
+
+    if (handler->count == 0) {
       continue;
     }
+
+    char *args = (char*) calloc(1, sizeof(char));
+
+    for (int j = 1; j < handler->count; ++j) {
+      args = (char*) realloc(args, sizeof(char) * (strlen(handler->arguments[j]) + 2));
+      strcat(args, handler->arguments[j]);
+      if ((j+1) < handler->count) {
+        strncat(args, " ", 1);
+      }
+    }
+
+    dbStmt = calloc(sizeof(char), 69 + strlen(handler->arguments[0]) + (args == NULL ? 0 : strlen(args)));
+    sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", \"%s\")", i, handler->arguments[0], (args == NULL ? "" : args));
+
+    free(args);
 
     if (dbStmt != NULL) {
       int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -801,11 +829,105 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
 
       free(dbStmt);
     }
-
   }
+
+  free_handler_arguments(&handlerDataPDF);
+  free_handler_arguments(&handlerDataEPUB);
+  free_handler_arguments(&handlerDataMOBI);
+  free_handler_arguments(&handlerDataCHM);
 
 
   gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+int trim(const char *input, char **trimmed) {
+  *trimmed = (char*) calloc(strlen(input)+1, sizeof(char));
+
+  char *pointer = *trimmed;
+
+  char key = '\0';
+  unsigned int readPos = 0;
+  unsigned int writePos = 0;
+  bool hasValidData = false;
+
+  while ((key = input[readPos++]) != '\0') {
+    if (key != ' ' || (key == ' ' && hasValidData)) {
+      if (key == ' ') {
+        unsigned int subPos = 0;
+        bool hasValidChar = false;
+        char subKey = '\0';
+
+        while((subKey = input[readPos + subPos++]) != '\0') {
+          if (subKey != ' ') {
+            hasValidChar = true;
+            readPos = readPos + (subPos - 1);
+            break;
+          }
+        }
+
+        if (!hasValidChar) {
+          pointer[writePos] = '\0';
+          break;
+        }
+      }
+
+      pointer[writePos++] = key;
+      hasValidData = true;
+    }
+  }
+
+  return writePos;
+}
+
+bool retrieve_handler_arguments(struct argumentStore *store, const char *stringData) {
+  char *data = NULL;
+
+  int retVal = trim(stringData, &data);
+
+  if (retVal == 0) {
+    return false;
+  }
+
+  char *dataPointer = strchr(data, ' ');
+  if (dataPointer == NULL) {
+    // only one argument
+    store->arguments = (char**) realloc(store->arguments, sizeof(char*) * (store->count + 1));
+    store->arguments[store->count] = malloc(sizeof(char) * (strlen(data)+1));
+    strcpy(store->arguments[store->count], data);
+    ++store->count;
+  } else {
+    long unsigned int count = (dataPointer - data);
+    char mainArg[count+1];
+    strncpy(mainArg, data, count);
+    mainArg[count] = '\0';
+
+    store->arguments = (char**) realloc(store->arguments, sizeof(char*) * (store->count + 1));
+    store->arguments[store->count] = malloc(sizeof(char) * (strlen(mainArg)+1));
+    strcpy(store->arguments[store->count], mainArg);
+    ++store->count;
+
+    char *argumentData = strtok(&dataPointer[1], " ");
+    while (argumentData != NULL) {
+      store->arguments = (char**) realloc(store->arguments, sizeof(char*) * (store->count + 1));
+      store->arguments[store->count] = malloc(sizeof(char) * (strlen(argumentData)+1));
+      strcpy(store->arguments[store->count], argumentData);
+      ++store->count;
+      argumentData = strtok(NULL, " ");
+    }
+  }
+
+  free(data);
+
+  return true;
+}
+
+void free_handler_arguments(struct argumentStore* store) {
+  for (int i = 0; i < store->count; ++i) {
+    free(store->arguments[i]);
+  }
+
+  store->count = 0;
+  store->arguments = NULL;
 }
 
 void launcherWindow_close(GtkButton *button, gpointer user_data) {
@@ -830,17 +952,11 @@ void open_edit_window(GObject *dataItem) {
   g_object_set(G_OBJECT(box), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(editWindow), box);
 
-  GtkWidget *labelPath = gtk_label_new("Path:");
-  GtkWidget *labelFileName = gtk_label_new("Filename:");
-  GtkWidget *labelFormat = gtk_label_new("Format:");
-  GtkWidget *labelAuthor = gtk_label_new("Author:");
   GtkWidget *labelTitle = gtk_label_new("Title:");
-
-  gtk_label_set_xalign(GTK_LABEL(labelPath), 0);
-  gtk_label_set_xalign(GTK_LABEL(labelFileName), 0);
-  gtk_label_set_xalign(GTK_LABEL(labelFormat), 0);
-  gtk_label_set_xalign(GTK_LABEL(labelAuthor), 0);
-  gtk_label_set_xalign(GTK_LABEL(labelTitle), 0);
+  GtkWidget *labelAuthor = gtk_label_new("Author:");
+  GtkWidget *labelFileName = gtk_label_new("Filename:");
+  GtkWidget *labelPath = gtk_label_new("Path:");
+  GtkWidget *labelFormat = gtk_label_new("Format:");
 
   g_object_set(G_OBJECT(labelPath), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFileName), "margin-top", 12, "margin-left", 6, NULL);
@@ -848,11 +964,15 @@ void open_edit_window(GObject *dataItem) {
   g_object_set(G_OBJECT(labelAuthor), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelTitle), "margin-top", 0, "margin-left", 6, NULL);
 
-  GtkWidget *entryPath = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), "Complete path");
-  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename. This is not changeable.");
-  g_object_set(G_OBJECT(entryPath), "editable", false, NULL);
+  GtkWidget *entryTitle = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryTitle), 255);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryTitle), "Title");
+  gtk_widget_set_tooltip_text(entryTitle, "The title of the ebook displayed in KISS Ebook.");
+
+  GtkWidget *entryAuthor = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryAuthor), 255);
+  gtk_widget_set_tooltip_text(entryAuthor, "The ebook author(s) displayed in KISS Ebook.");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), "Author(s)");
 
   GtkWidget *entryFileName = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFileName), 255);
@@ -860,21 +980,17 @@ void open_edit_window(GObject *dataItem) {
   gtk_widget_set_tooltip_text(entryFileName, "The file name which is not changeable.");
   g_object_set(G_OBJECT(entryFileName), "editable", false, NULL);
 
+  GtkWidget *entryPath = gtk_entry_new();
+  gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), "Complete path");
+  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename. This is not changeable.");
+  g_object_set(G_OBJECT(entryPath), "editable", false, NULL);
+
   GtkWidget *entryFormat = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFormat), 5);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryFormat), "Format");
   gtk_widget_set_tooltip_text(entryFormat, "The ebook format which is not changeable.");
   g_object_set(G_OBJECT(entryFormat), "editable", false, NULL);
-
-  GtkWidget *entryAuthor = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryAuthor), 255);
-  gtk_widget_set_tooltip_text(entryAuthor, "The ebook author(s) displayed in KISS Ebook.");
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), "Author(s)");
-
-  GtkWidget *entryTitle = gtk_entry_new();
-  gtk_entry_set_max_length(GTK_ENTRY(entryTitle), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryTitle), "Title");
-  gtk_widget_set_tooltip_text(entryTitle, "The title of the ebook displayed in KISS Ebook.");
 
   gtk_container_add(GTK_CONTAINER(box), labelTitle);
   gtk_container_add(GTK_CONTAINER(box), entryTitle);
@@ -1443,6 +1559,7 @@ void handle_launchCommand(GtkWidget* widget) {
 
   char *filePath = NULL;
   char *launcher = NULL;
+  char *args = NULL;
 
   //----------------------------------------------------------------------------
   char dbGetPathStmt[92 + strlen(authorStr) + strlen(titleStr)];
@@ -1466,8 +1583,8 @@ void handle_launchCommand(GtkWidget* widget) {
   }
 
   //----------------------------------------------------------------------------
-  char dbGetLauncherStmt[67];
-  sprintf(dbGetLauncherStmt, "SELECT program FROM launcher_applications WHERE format=%d LIMIT 0,1", format);
+  char dbGetLauncherStmt[73];
+  sprintf(dbGetLauncherStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", format);
 
   rc = sqlite3_exec(db, dbGetLauncherStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
@@ -1475,26 +1592,73 @@ void handle_launchCommand(GtkWidget* widget) {
     printf("SQL error during selection: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
+
+
     if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
       free(filePath);
       free_db_answer(&receiveFromDb);
       return;
     }
 
+    get_db_answer_value(&receiveFromDb, "args", &args);
     free_db_answer(&receiveFromDb);
   }
 
   //----------------------------------------------------------------------------
 
-  char launchString[strlen(launcher) + strlen(filePath) + 2];
-  sprintf(launchString, "%s %s", launcher, filePath);
+  char launchString[strlen(launcher) + (args != NULL ? strlen(args) : 0) + (strlen(filePath) * 3) + 2];
+
+  char fileRegPath[strlen(filePath) + 1];
+  int readPos = strrchr(filePath, '/') - filePath;
+
+  strncpy(fileRegPath, filePath, readPos + 1);
+
+  if (args != NULL) {
+    sprintf(launchString, "%s %s %s", launcher, args, fileRegPath);
+  } else {
+    sprintf(launchString, "%s %s", launcher, fileRegPath);
+  }
+
+  char escapeChars[13] = " $.*/()[\\]^";
+
+  if (readPos != 0) {
+    readPos++;
+
+    int writePos = strlen(launchString);
+    bool isEscapingChar = false;
+    char key = '\0';
+    char subkey = '\0';
+    int readSub = 0;
+
+    while((key = filePath[readPos++]) != '\0') {
+      readSub = 0;
+      isEscapingChar = false;
+      while ((subkey = escapeChars[readSub++]) != '\0') {
+        if (subkey == key) {
+          isEscapingChar = true;
+          break;
+        }
+      }
+
+      if (isEscapingChar) {
+        launchString[writePos++] = '\\';
+        launchString[writePos++] = key;
+      } else {
+        launchString[writePos++] = key;
+      }
+
+    }
+
+    launchString[writePos] = '\0';
+  }
+
 
   pid_t child_pid = fork();
   if (child_pid >= 0) {
     if (child_pid == 0) {
+      free(args);
       free(filePath);
       free(launcher);
-
       GtkApplication *app = g_object_get_data(G_OBJECT(widget), "app");
       g_object_unref(g_object_get_data(G_OBJECT(widget), "dataStore"));
       g_object_unref(G_OBJECT(app));
@@ -1503,12 +1667,14 @@ void handle_launchCommand(GtkWidget* widget) {
       execlp("/bin/sh", "/bin/sh", "-c", launchString, NULL);
       return;
     } else {
+      free(args);
       free(filePath);
       free(launcher);
       return;
     }
   }
 
+  free(args);
   free(filePath);
   free(launcher);
 
@@ -1809,6 +1975,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
   fileInfo fileData = {NULL, NULL, 0};
 
   int format = 0;
+  bool hasCleanPath = false;
 
   if (fileType != NULL) {
     bool retVal = false;
@@ -1819,6 +1986,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_pdf(&cleanedPath[7], &fileData);
       } else {
+        hasCleanPath = true;
         retVal = read_pdf(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".epub") == 0) {
@@ -1827,6 +1995,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_epub(&cleanedPath[7], &fileData);
       } else {
+        hasCleanPath = true;
         retVal = read_epub(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".mobi") == 0) {
@@ -1835,6 +2004,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_mobi(&cleanedPath[7], &fileData);
       } else {
+        hasCleanPath = true;
         retVal = read_mobi(cleanedPath, &fileData);
       }
     } else if (strcmp(lowerFiletype, ".chm") == 0) {
@@ -1843,6 +2013,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (strncmp(cleanedPath, "file:", 5) == 0) {
         retVal = read_chm(&cleanedPath[7], &fileData);
       } else {
+        hasCleanPath = true;
         retVal = read_chm(cleanedPath, &fileData);
       }
     }
@@ -1887,11 +2058,12 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
 
     char *dbStm = (char*) calloc((54 + additionSize), sizeof(char));
+
     sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\");",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
-      cleanedPath,
+      hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
     );
 
