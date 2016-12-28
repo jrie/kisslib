@@ -578,9 +578,8 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   GtkWidget *entryPDF = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 127);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
-  gtk_widget_set_tooltip_text(entryPDF, "Application to open .pdf files.");
+  gtk_widget_set_tooltip_text(entryPDF, "Application to open .pdf files. This could be: \"evince\"");
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
-
 
   GtkWidget *labelEPUB = gtk_label_new("EPUB file handler:");
   gtk_label_set_xalign(GTK_LABEL(labelEPUB), 0);
@@ -590,7 +589,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   GtkWidget *entryEPUB = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 127);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
-  gtk_widget_set_tooltip_text(entryEPUB, "Application to open .epub files.");
+  gtk_widget_set_tooltip_text(entryEPUB, "Application to open .epub files. This could be: \"fbreader\"");
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
 
   GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
@@ -601,7 +600,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   GtkWidget *entryMOBI = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 127);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
-  gtk_widget_set_tooltip_text(entryMOBI, "Application to open .mobi files.");
+  gtk_widget_set_tooltip_text(entryMOBI, "Application to open .mobi files. This could be: \"fbreader\"");
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
 
 
@@ -613,7 +612,7 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   GtkWidget *entryCHM = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 127);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
-  gtk_widget_set_tooltip_text(entryCHM, "Application to open .chm files.");
+  gtk_widget_set_tooltip_text(entryCHM, "Application to open .chm files. This could be: \"xchm\"");
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
 
   if (pdfHandler != NULL) {
@@ -843,11 +842,11 @@ void open_edit_window(GObject *dataItem) {
   gtk_label_set_xalign(GTK_LABEL(labelAuthor), 0);
   gtk_label_set_xalign(GTK_LABEL(labelTitle), 0);
 
-  g_object_set(G_OBJECT(labelPath), "margin-top", 0, "margin-left", 6, NULL);
+  g_object_set(G_OBJECT(labelPath), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFileName), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFormat), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelAuthor), "margin-top", 12, "margin-left", 6, NULL);
-  g_object_set(G_OBJECT(labelTitle), "margin-top", 12, "margin-left", 6, NULL);
+  g_object_set(G_OBJECT(labelTitle), "margin-top", 0, "margin-left", 6, NULL);
 
   GtkWidget *entryPath = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
