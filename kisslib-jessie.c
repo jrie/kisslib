@@ -408,7 +408,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   //----------------------------------------------------------------------------
 
   int error;
-  struct zip *epubFile = zip_open(fileName, ZIP_AFL_RDONLY, &error);
+  struct zip *epubFile = zip_open(fileName, 16, &error);
 
   if (epubFile == NULL) {
     printf("libzip error code \"%d\" - cannot open file \"%s\".\n", error, fileName);
@@ -488,8 +488,12 @@ bool read_epub(char fileName[], fileInfo *fileData) {
     }
 
     if (doRecord) {
-      if (currentChar > 32) {
+      if (currentChar > 24) {
         readBuffer[readBufferPos++] = currentChar;
+
+        if (readBufferPos == 1024) {
+          readBufferPos = 0;
+        }
       }
     }
   }
@@ -513,7 +517,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   }
 
   fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
-  fileData->entries[fileData->count] = malloc(sizeof(char) * strlen(title));
+  fileData->entries[fileData->count] = malloc(sizeof(char) * (strlen(title)+1));
   strcpy(fileData->entries[fileData->count], title);
 
   fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
