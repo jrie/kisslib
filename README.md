@@ -14,7 +14,7 @@ The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing
 
 ### Tested working on
 * Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
-* Debian Jessie/Stable requires the "kisslib-jessie" binary and special compilation due to code changes (28.12.2016)
+* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (28.12.2016)
 * more to come...
 
 ### File support and usage
@@ -81,7 +81,7 @@ Download "kisslib-jessie" which is a Linux binary.
 * libsqlite3-0
 * libgtk-3-0
 
-Then "chmod +x kisslib" to allow the system to execute it.
+Then "chmod +x kisslib-jessie" to allow the system to execute it.
 And then start using "./kisslib-jessie".
 
 
