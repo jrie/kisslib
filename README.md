@@ -10,6 +10,8 @@ Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go 
 A gallery with screenshots (also development steps), newest first, can be found here:
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
+The screenshots are taken under Debian Sid using Xfce desktop.
+
 
 ### File support and usage
 
