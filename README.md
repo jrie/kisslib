@@ -14,8 +14,8 @@ The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing
 
 ### Tested working on
 * Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
-* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (28.12.2016)
-* more to come...
+* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (@28.12.2016)
+* Fedora Workstation 25 - and can run with the "kisslib" binary (@29.12.2016)
 
 ### File support and usage
 
@@ -65,8 +65,9 @@ And then run "./kisslib" to open kisslib.
 
 
 ### Or to directly use kisslib (not Debian Jessie)
-Download "kisslib" which is a Linux binary and install the following dependencies to run it:
-* libzip4
+Download "kisslib" which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
+
+* libzip4 
 * libsqlite3
 * libgtk-3-0
 
@@ -75,7 +76,7 @@ And then start using "./kisslib".
 
 
 ### Debian Jessie
-Download "kisslib-jessie" which is a Linux binary.
+Download "kisslib-jessie" which is a Linux 64bit binary.
 
 * libzip2
 * libsqlite3
