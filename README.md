@@ -6,6 +6,11 @@ kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook lau
 
 Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go through an ebook collection and launching an user-defined viewer for the filetype. While displaying general information about a ebook file like format, author and title.
 
+### Screenshot gallery
+A gallery with screenshots (also development steps), newest first, can be found here:
+https://www.picflash.org/gallery.php?id=9RGDIIE7K8
+
+
 ### File support and usage
 
 Supported file types which are handled are:
