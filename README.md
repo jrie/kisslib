@@ -67,7 +67,7 @@ And then run "./kisslib" to open kisslib.
 ### Or to directly use kisslib (not Debian Jessie)
 Download "kisslib" which is a Linux binary and install the following dependencies to run it:
 * libzip4
-* libsqlite3-0
+* libsqlite3
 * libgtk-3-0
 
 Then "chmod +x kisslib" to allow the system to execute it.
@@ -78,7 +78,7 @@ And then start using "./kisslib".
 Download "kisslib-jessie" which is a Linux binary.
 
 * libzip2
-* libsqlite3-0
+* libsqlite3
 * libgtk-3-0
 
 Then "chmod +x kisslib-jessie" to allow the system to execute it.
