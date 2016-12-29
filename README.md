@@ -1,5 +1,5 @@
 # kisslib
-A kiss principle ebook launcher for Unix.
+A kiss principle ebook quick launcher application for Linux
 
 ### What it is
 kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files.
@@ -14,7 +14,7 @@ The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing
 
 ### Tested working on
 * Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
-* Debian Jessie/Stable requires the "kisslib-jessie" binary and special compilation due to code changes (28.12.2016)
+* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (28.12.2016)
 * more to come...
 
 ### File support and usage
@@ -67,7 +67,7 @@ And then run "./kisslib" to open kisslib.
 ### Or to directly use kisslib (not Debian Jessie)
 Download "kisslib" which is a Linux binary and install the following dependencies to run it:
 * libzip4
-* libsqlite3-0
+* libsqlite3
 * libgtk-3-0
 
 Then "chmod +x kisslib" to allow the system to execute it.
@@ -78,13 +78,14 @@ And then start using "./kisslib".
 Download "kisslib-jessie" which is a Linux binary.
 
 * libzip2
-* libsqlite3-0
+* libsqlite3
 * libgtk-3-0
 
-Then "chmod +x kisslib" to allow the system to execute it.
+Then "chmod +x kisslib-jessie" to allow the system to execute it.
 And then start using "./kisslib-jessie".
 
 
 ### Known issues
 * If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
 
+* In LXDE/using Openbox in Debian Jessie, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must close the dialog in order to do anything in kisslib
