@@ -88,3 +88,4 @@ And then start using "./kisslib-jessie".
 ### Known issues
 * If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
 
+* In LXDE/using Openbox in Debian Jessie, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must close the dialog in order to close kisslib
