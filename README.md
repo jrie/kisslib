@@ -34,7 +34,7 @@ In case a title is misleading, it is possible to get the actual file name into t
 For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
 ### Requirements
-* libzip / libzipdev for compiling (used for epub support)
+* libzip/libzip-dev for compiling (used for epub support)
 * libsqlite3-dev (as datastore)
 * libgtk-3-dev (GUI)
 * Unix like system (having GNU C extensions, for directory listing)
@@ -45,18 +45,33 @@ Compile using gcc:
 
 ""gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
 
+If you want to link against libzip2+libzipdev and an a earlier version of GTK3 (if you run Debian Jessie for example) - you can, but you have to run the following command:
+
+""gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
+
+
 And then run "./kisslib" to open kisslib.
 
-### Or to directly use kisslib
-Download "kisslib" which is a ELF Linux binary and install the following dependencies to run it:
+
+### Or to directly use kisslib (not Debian Jessie)
+Download "kisslib" which is a Linux binary and install the following dependencies to run it:
 * libzip4
 * libsqlite3-0
 * libgtk-3-0
 
 And then start using "./kisslib".
 
-### Known issues
-* kisslib is known not to run on Debian Jessie at present
 
-As only libzip2 is present and a version of GTK3 which is not compatible with the current code too, the easiest solution at present would be, to upgrade to Stretch/Testing of Debian. But I will try to release a version, which is compatible to those libraries provided in Jessie, if possible.
+### Debian Jessie
+Download "kisslib-jessie" which is a Linux binary.
+
+* libzip2
+* libsqlite3-0
+* libgtk-3-0
+
+And then start using "./kisslib-jessie".
+
+
+### Known issues
+* If there are any database errors, you most likely once need to delete the "kisslib.db" once so that all sqlite tables are properly created (due to changes) - this is a one time action
 
