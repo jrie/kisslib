@@ -1,5 +1,5 @@
 # kisslib
-A kiss principle ebook launcher for Unix.
+A kiss principle ebook quick launcher application for Linux
 
 ### What it is
 kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files.
