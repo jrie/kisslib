@@ -41,7 +41,7 @@ In case a title is misleading, it is possible to get the actual file name into t
 For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
 ### Requirements
-* libzip/libzip-dev for compiling (used for epub support)
+* libzip4/libzip-dev for compiling (used for epub support)
 * libsqlite3-dev (as datastore)
 * libgtk-3-dev (GUI)
 * Unix like system (having GNU C extensions, for directory listing)
