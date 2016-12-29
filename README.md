@@ -16,6 +16,7 @@ The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing
 * Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
 * Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (@28.12.2016)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (@29.12.2016)
+* CentOS using "kisslib-jessie" and related files (@29.12.2016)
 
 ### File support and usage
 
@@ -89,4 +90,4 @@ And then start using "./kisslib-jessie".
 ### Known issues
 * If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
 
-* In LXDE/using Openbox in Debian Jessie, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must close the dialog in order to do anything in kisslib
+* In LXDE/using Openbox in Debian Jessie or KDE Plasma and CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must close the dialog in order to do anything in kisslib
