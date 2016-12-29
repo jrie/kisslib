@@ -10,8 +10,12 @@ Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go 
 A gallery with screenshots (also development steps), newest first, can be found here:
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
-The screenshots are taken under Debian Sid using Xfce desktop.
+The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing with Xfce Defaults.
 
+### Tested working on
+* Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
+* Debian Jessie/Stable requires the "kisslib-jessie" binary and special compilation due to code changes (28.12.2016)
+* more to come...
 
 ### File support and usage
 
@@ -56,7 +60,7 @@ If you want to link against libzip2+libzipdev and an a earlier version of GTK3 (
 
 ""gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
 
-
+Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
 
 
@@ -66,6 +70,7 @@ Download "kisslib" which is a Linux binary and install the following dependencie
 * libsqlite3-0
 * libgtk-3-0
 
+Then "chmod +x kisslib" to allow the system to execute it.
 And then start using "./kisslib".
 
 
@@ -76,9 +81,10 @@ Download "kisslib-jessie" which is a Linux binary.
 * libsqlite3-0
 * libgtk-3-0
 
+Then "chmod +x kisslib" to allow the system to execute it.
 And then start using "./kisslib-jessie".
 
 
 ### Known issues
-* If there are any database errors, you most likely once need to delete the "kisslib.db" once so that all sqlite tables are properly created (due to changes) - this is a one time action
+* If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
 
