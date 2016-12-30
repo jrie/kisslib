@@ -22,7 +22,6 @@ A gallery with screenshots (also development steps), newest first, can be found 
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
 
-
 ## Where does it work? - Tested working on...
 * Debian Sid/Unstable and Stretch/Testing (Tested 28.12.2016)
 * Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions, please see known issues (Tested 28.12.2016)
@@ -30,6 +29,30 @@ https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 * CentOS 7 using "kisslib-jessie" and related files, please see known issues (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 30.12.2016)
 * your favourite Linux distro here! (please get in touch and I try to give my best to get it working)
+
+
+## I want to use it, not to compile! Heres how:
+Download "kisslib" which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
+
+* libzip4 
+* libsqlite3
+* libgtk-3-0
+
+Then "chmod +x kisslib" to allow the system to execute it.
+And then start using "./kisslib".
+
+### Debian Jessie or distros with older libraries
+Please see also the known issues at the bottom, as there are slight issues with this version.
+
+Download "kisslib-jessie" which is a Linux 64bit binary.
+
+* libzip2
+* libsqlite3
+* libgtk-3-0
+
+Then "chmod +x kisslib-jessie" to allow the system to execute it.
+And then start using "./kisslib-jessie".
+
 
 ## Can I..., is it easy to use? - File support and usage guide
 
@@ -58,29 +81,10 @@ In case a title is misleading, it is possible to get the actual file name into t
 
 For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
-## I want to use it, not to compile! Heres how:
-Download "kisslib" which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
-
-* libzip4 
-* libsqlite3
-* libgtk-3-0
-
-Then "chmod +x kisslib" to allow the system to execute it.
-And then start using "./kisslib".
-
-### Debian Jessie
-Download "kisslib-jessie" which is a Linux 64bit binary.
-
-* libzip2
-* libsqlite3
-* libgtk-3-0
-
-Then "chmod +x kisslib-jessie" to allow the system to execute it.
-And then start using "./kisslib-jessie".
 
 ## Compiling
 
-## Requirements for compilation (kisslib non "jessie" version)
+### Requirements and compilation (kisslib non "jessie" version)
 * libzip4/libzip-dev for compiling (used for epub support)
 * libsqlite3-dev (as datastore)
 * libgtk-3-dev (GUI)
@@ -91,18 +95,23 @@ Compile using gcc:
 
 ""gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
 
-If you want to link against libzip2+libzipdev and an a earlier version of GTK3 (if you run Debian Jessie or want to compile the "kisslib-jessie.c" and "kisslib-front-jessie.c" for example) - you can, but you have to run the following command:
+Then "chmod +x kisslib" to allow the system to execute it.
+And then run "./kisslib" to open kisslib.
+
+
+### Compilation of the "jessie" version (not only Debian Jessie!)
+
+The same may wary slightly, depending on your distro.
+
+If you want to link against an earlier version, you need:
+* libzip-dev/libzip2
+* libsqlite3-dev
 
 ""gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
 
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
 
-
-## Known issues
-* If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
-
-* In Debian Jessie except when using Xfce and in CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs
 
 ## ToDo and plans
 * Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)
@@ -111,3 +120,9 @@ And then run "./kisslib" to open kisslib.
 * Add a option to sort by default on format, authors or title on startup
 * Add a search option to only show files with particular tile, author or format
 * your feature suggestion (please contact me by email)
+
+
+## Known issues
+* If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
+
+* In Debian Jessie except when using Xfce and in CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs
