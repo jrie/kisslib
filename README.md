@@ -16,10 +16,12 @@ Kiss Ebook shows you therefore the format, the authors and the titles of the ebo
 You also can, edit the authors and details inside Kisslib, which allow you a quicker navigation. The ebook itself is untouched in this process and those informations are only stored in the database.
 
 ## Show me! - Screenshot gallery
+The screenshots are taken under Debian Stretch using Xfce desktop with default settings and the dark screenshots with Debian Sid with Xfce Breeze theme.
+
 A gallery with screenshots (also development steps), newest first, can be found here:
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
-The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing with Xfce Defaults.
+
 
 ## Where does it work? - Tested working on...
 * Debian Sid/Unstable and Stretch/Testing (Tested 28.12.2016)
