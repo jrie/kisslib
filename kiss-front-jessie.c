@@ -731,12 +731,13 @@ void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_window_set_type_hint(GTK_WINDOW(launcherWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
   gtk_window_activate_focus(GTK_WINDOW(launcherWindow));
   //gtk_entry_grab_focus_without_selecting(GTK_ENTRY(entryPDF));
-  gtk_widget_show_all(launcherWindow);
 
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(launcherWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(launcherWindow), true);
   gtk_window_set_position(GTK_WINDOW(launcherWindow), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(launcherWindow), true);
+  gtk_widget_show_all(launcherWindow);
+  gtk_window_present(GTK_WINDOW(launcherWindow));
 }
 
 void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
@@ -1139,12 +1140,12 @@ void open_edit_window(GObject *dataItem) {
   gtk_window_activate_focus(GTK_WINDOW(editWindow));
   //gtk_entry_grab_focus_without_selecting(GTK_ENTRY(entryTitle));
 
-  gtk_widget_show_all(editWindow);
-
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(dataItem), "appWindow")), GTK_WINDOW(editWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(editWindow), true);
   gtk_window_set_position(GTK_WINDOW(editWindow), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(editWindow), true);
+  gtk_widget_show_all(editWindow);
+  gtk_window_present(GTK_WINDOW(editWindow));
 }
 
 void edit_entry_close(GtkButton *button, gpointer user_data) {
@@ -1330,12 +1331,13 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   //gtk_window_set_keep_above(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_type_hint(GTK_WINDOW(fileChooserWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
   gtk_window_activate_focus(GTK_WINDOW(fileChooserWindow));
-  gtk_widget_show_all(fileChooserWindow);
 
   gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_modal(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_position(GTK_WINDOW(fileChooserWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+  gtk_widget_show_all(fileChooserWindow);
+  gtk_window_present(GTK_WINDOW(fileChooserWindow));
 }
 
 
