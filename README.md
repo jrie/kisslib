@@ -15,6 +15,7 @@ Kiss Ebook shows you therefore the format, the authors and the titles of the ebo
 
 You also can, edit the authors and details inside Kisslib, which allow you a quicker navigation. The ebook itself is untouched in this process and those informations are only stored in the database.
 
+
 ## Show me! - Screenshot gallery
 The screenshots are taken under Debian Stretch using Xfce desktop with default settings and the dark screenshots with Debian Sid with Xfce Breeze theme.
 
@@ -68,6 +69,7 @@ chmod +x kisslib-jessie
 ./kisslib-jessie
 ```
 
+
 ## Can I..., is it easy to use? - File support and usage guide
 
 Supported file types which are handled are:
@@ -113,6 +115,7 @@ Compile using gcc:
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
 
+
 ### Compilation of the "jessie" version (not only Debian Jessie!)
 
 The same may wary slightly, depending on your distro.
@@ -126,7 +129,6 @@ If you want to link against an earlier version, you need:
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
 
-
 ## ToDo and plans
 * Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
@@ -137,6 +139,6 @@ And then run "./kisslib" to open kisslib.
 
 
 ## Known issues
-* If you upgrade from a new version, and there are any sql errors while saving the launcher applications, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your ebooks after this step
+* If you upgrade from a previous version and there are any sql errors while saving the launcher applications, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your ebooks after this step
 
 * In Debian Jessie except when using Xfce and in CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs
