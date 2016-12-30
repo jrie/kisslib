@@ -27,7 +27,7 @@ Supported file types which are handled are:
 * chm
 
 In order to make use of KISS Ebook, you have to first import any supported ebook files.
-Its possible to import files and folders using the menu "Import files and folders" or by dragging and dropping files and or folders onto the ebook list, data then is processed in order to display information like author, title and file format when available of the supported ebook file formats.
+Its possible to import files and folders using the menu "Import files and folders" or by dragging and dropping files and or folders onto the ebook list, data then is processed in order to display information like author, title and file format when available of the supported ebook file formats, for pdf-files if no title is found, the filename is used in the list view.
 
 The data is then stored into the sqlite3 database "kisslib.db" and is then again available if you open kisslib.
 Entries can be removed by pressing the "Del"-key.
@@ -90,4 +90,4 @@ And then start using "./kisslib-jessie".
 ### Known issues
 * If there are any database errors, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly created (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your data
 
-* In LXDE/using Openbox in Debian Jessie or KDE Plasma and CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must close the dialog in order to do anything in kisslib
+* In Debian Jessie except when using Xfce and in CentOS, the dialog windows for file import, edit ebook details and set launcher applciations are all opened but hidden behind the main window. Please note that when those windows are open, the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs
