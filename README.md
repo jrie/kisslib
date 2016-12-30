@@ -153,6 +153,7 @@ And then run "./kisslib" to open kisslib.
 * Add the ability to sort by format, author and title
 * Add a option to sort by default on format, authors or title on startup
 * Add a search option to only show files with particular tile, author or format
+* Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers (please propose your favorite readers by raising an issue or by email! I know only a mouthful and not every distro/flavour)
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
