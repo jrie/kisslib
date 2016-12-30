@@ -54,7 +54,7 @@ And on default Xfce (Debian Testing):
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 30.12.2016)
-* sparky linux (Tested 30.12.2016)
+* Sparky linux (Tested 30.12.2016)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
