@@ -1,12 +1,12 @@
 # kisslib
 A kiss principle ebook quick launcher application for Linux systems
 
-## Whats the deal?
+## Whats is it about?
 kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files, works completely offline and helps you manage and launch your ebooks from a single place, giving you hints about the authors and tiles and the format of your ebooks.
 
 Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go through an ebook collection and launching an own defined viewer (if you like with commands) for the supported ebook types. While displaying general information about a ebook file like format, author and title.
 
-### But why? There are tons of good readers, like XY...
+### But why? There are tons of good readers, like XY... the movivation behind KISS Ebook
 The motivation to write this application is simple. Most programs read out particular formats or maybe dont support all of them, so you need a special applciation to handle pdf, but not the same to handle chm files.
 
 Kiss Ebook Starter simply allows you to read all supported ebook formats into Kiss Ebook and from there, launch the particular application you want, with the settings/commands you provide, for example opening all pdfs in full screen if you like that, if that is a feature supported by the viewer - for example through a command line option.
@@ -28,7 +28,7 @@ https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
 * CentOS 7 using "kisslib-jessie" and related files, please see known issues (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 30.12.2016)
-* your favourite Linux distro here! (please get in touch and I try to give my best to get it working)
+* your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
 ## I want to use it, not to compile! Heres how:
@@ -38,8 +38,12 @@ Download "kisslib" which is a Linux 64bit binary and install the following depen
 * libsqlite3
 * libgtk-3-0
 
-Then "chmod +x kisslib" to allow the system to execute it.
-And then start using "./kisslib".
+Then give kisslib executeable permissions and start it using:
+```
+chmod +x kisslib
+./kisslib
+```
+
 
 ### Debian Jessie or distros with older libraries
 Please see also the known issues at the bottom, as there are slight issues with this version.
@@ -50,9 +54,11 @@ Download "kisslib-jessie" which is a Linux 64bit binary.
 * libsqlite3
 * libgtk-3-0
 
-Then "chmod +x kisslib-jessie" to allow the system to execute it.
-And then start using "./kisslib-jessie".
-
+Then give kisslib executeable permissions and start it using:
+```
+chmod +x kisslib-jessie
+./kisslib-jessie
+```
 
 ## Can I..., is it easy to use? - File support and usage guide
 
@@ -93,11 +99,11 @@ For a quick search in the collection, it is possible to use type ahead find on t
 
 Compile using gcc:
 
-""gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
+```gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib```
+
 
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
-
 
 ### Compilation of the "jessie" version (not only Debian Jessie!)
 
@@ -107,7 +113,7 @@ If you want to link against an earlier version, you need:
 * libzip-dev/libzip2
 * libsqlite3-dev
 
-""gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib""
+```gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib```
 
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
