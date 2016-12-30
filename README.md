@@ -13,10 +13,11 @@ https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 The screenshots are taken under Debian Sid using Xfce desktop and Debian Testing with Xfce Defaults.
 
 ### Tested working on
-* Debian Sid/Unstable and Stretch/Testing (Tested @ 28.12.2016)
-* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (@28.12.2016)
-* Fedora Workstation 25 - and can run with the "kisslib" binary (@29.12.2016)
-* CentOS using "kisslib-jessie" and related files (@29.12.2016)
+* Debian Sid/Unstable and Stretch/Testing (Tested 28.12.2016)
+* Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions, please see known issues (Tested 28.12.2016)
+* Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
+* CentOS 7 using "kisslib-jessie" and related files, please see known issues (Tested 29.12.2016)
+* openSuse (Tested 30.12.2016)
 
 ### File support and usage
 
