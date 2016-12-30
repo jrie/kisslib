@@ -21,6 +21,14 @@ The screenshots are taken under Debian Stretch using Xfce desktop with default s
 A gallery with screenshots (also development steps), newest first, can be found here:
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
+Examples of KISS Ebook
+
+[![Screenshot Kiss Ebook during import](https://www.picflash.org/img/2016/12/22/TB2e8osytx7rywios.png "Screenshot Kiss Ebook during import")] (https://www.picflash.org/viewer.php?img=2e8osytx7rywios.png)
+
+And on default Xfce (Debian Testing):
+
+[![Screenshot Kiss Ebook with opened edit ebook details-dialog](https://www.picflash.org/img/2016/12/29/TBtiobsygvs14u1mu.png "Screenshot Kiss Ebook with opened edit ebook details-dialog")] (https://www.picflash.org/viewer.php?img=tiobsygvs14u1mu.png)
+
 
 ## Where does it work? - Tested working on...
 * Debian Sid/Unstable and Stretch/Testing (Tested 28.12.2016)
