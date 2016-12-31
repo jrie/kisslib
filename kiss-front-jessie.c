@@ -343,7 +343,7 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
 
   GtkWidget *menuBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-  g_object_set(G_OBJECT(menuBox), "margin-bottom", 8, NULL);
+  g_object_set(G_OBJECT(menuBox), "margin", 10, "margin-top", 5, NULL);
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
 
 
@@ -364,6 +364,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkAdjustment *vadjustment = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(ebookList));
   GtkAdjustment *hadjustment = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(ebookList));
   GtkWidget *scrollWin = gtk_scrolled_window_new(hadjustment, vadjustment);
+  g_object_set(G_OBJECT(scrollWin), "margin-left", 10, "margin-right", 10, NULL);
   gtk_grid_attach(GTK_GRID(grid), scrollWin, 0, 1, 10, 1);
   gtk_container_add(GTK_CONTAINER(scrollWin), ebookList);
 
@@ -1621,6 +1622,7 @@ void handle_launchCommand(GtkWidget* widget) {
   int readPos = strrchr(filePath, '/') - filePath;
 
   strncpy(fileRegPath, filePath, readPos + 1);
+  fileRegPath[readPos+1] = '\0';
 
   if (args != NULL) {
     sprintf(launchString, "%s %s %s", launcher, args, fileRegPath);

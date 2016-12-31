@@ -343,13 +343,29 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
 
   GtkWidget *menuBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-  gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
+  g_object_set(G_OBJECT(menuBox), "margin", 10, "margin-top", 5, NULL);
+  gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 5, 1);
+
+  //----------------------------------------------------------------------------
+
+  /*GtkWidget *searchEntry = gtk_entry_new();
+  g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 5, NULL);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), "Search inside list...");
+  gtk_entry_set_max_length(GTK_ENTRY(searchEntry), 128);
+  gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, "system-search");
+  gtk_grid_attach(GTK_GRID(grid), searchEntry, 5, 0, 5, 1);
+  */
+
+
+
+  //----------------------------------------------------------------------------
 
   ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
 
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
   gtk_widget_set_hexpand(ebookList, true);
   gtk_widget_set_vexpand(ebookList, true);
+  gtk_window_set_focus(GTK_WINDOW(window), ebookList);
 
   // NOTE: Add reorder option?
   //gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ebookList), true);
@@ -362,6 +378,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkAdjustment *vadjustment = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(ebookList));
   GtkAdjustment *hadjustment = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(ebookList));
   GtkWidget *scrollWin = gtk_scrolled_window_new(hadjustment, vadjustment);
+  g_object_set(G_OBJECT(scrollWin), "margin-left", 10, "margin-right", 10, NULL);
   gtk_grid_attach(GTK_GRID(grid), scrollWin, 0, 1, 10, 1);
   gtk_container_add(GTK_CONTAINER(scrollWin), ebookList);
 
@@ -1617,7 +1634,8 @@ void handle_launchCommand(GtkWidget* widget) {
   char fileRegPath[strlen(filePath) + 1];
   int readPos = strrchr(filePath, '/') - filePath;
 
-  strncpy(fileRegPath, filePath, readPos + 1);
+  strncpy(fileRegPath, filePath, readPos+1);
+  fileRegPath[readPos+1] = '\0';
 
   if (args != NULL) {
     sprintf(launchString, "%s %s %s", launcher, args, fileRegPath);
@@ -2063,15 +2081,17 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
                        + (author == NULL ? 7 : strlen(author))
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
 
-    char *dbStm = (char*) calloc((54 + additionSize), sizeof(char));
+    char *dbStm = (char*) calloc((43 + additionSize), sizeof(char));
 
-    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\");",
+    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\")",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
       hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
     );
+
+    printf("DbStm:\n%s\n", dbStm);
 
 
     int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
