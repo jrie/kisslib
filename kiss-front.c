@@ -48,12 +48,15 @@ typedef struct argumentStore {
 void run(GtkApplication*, gpointer);
 void handle_launchCommand(GtkWidget*);
 
+
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
 void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
 
+void search_icon_click(GtkEntry*, GtkEntryIconPosition, GdkEvent*, gpointer);
+void search_handle_search(GtkEntry*, gpointer);
 
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
@@ -64,7 +67,7 @@ void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
 
 bool retrieve_handler_arguments(struct argumentStore*, const char *);
 void free_handler_arguments(struct argumentStore*);
-int trim(const char*, char**);
+int trim(const char*, char**, bool);
 
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
@@ -292,6 +295,7 @@ void run(GtkApplication *app, gpointer user_data) {
     G_TYPE_STRING
   );
 
+  /*
   gtk_list_store_append(dataStore, &iter);
   gtk_list_store_set(dataStore, &iter,
     FORMAT_COLUMN, "pdf",
@@ -324,6 +328,7 @@ void run(GtkApplication *app, gpointer user_data) {
     TITLE_COLUMN, "libzip is the way to go!",
     -1
   );
+  */
 
 
   //----------------------------------------------------------------------------
@@ -333,7 +338,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   char *dbErrorMsg = NULL;
 
-  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     printf("SQL error: %s\n", dbErrorMsg);
@@ -345,18 +350,6 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *menuBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   g_object_set(G_OBJECT(menuBox), "margin", 10, "margin-top", 5, NULL);
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 5, 1);
-
-  //----------------------------------------------------------------------------
-
-  /*GtkWidget *searchEntry = gtk_entry_new();
-  g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 5, NULL);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), "Search inside list...");
-  gtk_entry_set_max_length(GTK_ENTRY(searchEntry), 128);
-  gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, "system-search");
-  gtk_grid_attach(GTK_GRID(grid), searchEntry, 5, 0, 5, 1);
-  */
-
-
 
   //----------------------------------------------------------------------------
 
@@ -413,6 +406,20 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
   g_object_set_data(G_OBJECT(ebookList), "progressRevealer", progressRevealer);
   g_object_set_data(G_OBJECT(ebookList), "treeview", ebookList);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *searchEntry = gtk_entry_new();
+  g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 5, NULL);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), "Search inside ebook list...");
+  gtk_entry_set_max_length(GTK_ENTRY(searchEntry), 64);
+  gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, "system-search");
+  gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
+  gtk_entry_set_icon_activatable(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, true);
+  gtk_entry_set_icon_tooltip_text(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "Clear search and restore entries to default.");
+  gtk_grid_attach(GTK_GRID(grid), searchEntry, 5, 0, 5, 1);
+  g_signal_connect(G_OBJECT(searchEntry), "icon-press", G_CALLBACK(search_icon_click), ebookList);
+  g_signal_connect(G_OBJECT(searchEntry), "activate", G_CALLBACK(search_handle_search), ebookList);
 
   //----------------------------------------------------------------------------
 
@@ -857,7 +864,7 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
   gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
 }
 
-int trim(const char *input, char **trimmed) {
+int trim(const char *input, char **trimmed, bool trimInside) {
   *trimmed = (char*) calloc(strlen(input)+1, sizeof(char));
 
   char *pointer = *trimmed;
@@ -877,7 +884,9 @@ int trim(const char *input, char **trimmed) {
         while((subKey = input[readPos + subPos++]) != '\0') {
           if (subKey != ' ') {
             hasValidChar = true;
-            readPos = readPos + (subPos - 1);
+            if (trimInside) {
+              readPos = readPos + (subPos - 1);
+            }
             break;
           }
         }
@@ -899,7 +908,7 @@ int trim(const char *input, char **trimmed) {
 bool retrieve_handler_arguments(struct argumentStore *store, const char *stringData) {
   char *data = NULL;
 
-  int retVal = trim(stringData, &data);
+  int retVal = trim(stringData, &data, true);
 
   if (retVal == 0) {
     return false;
@@ -1789,6 +1798,66 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
   return true;
 }
 
+
+//------------------------------------------------------------------------------
+void search_icon_click(GtkEntry* entry, GtkEntryIconPosition icon_pos, GdkEvent* event, gpointer user_data) {
+  if (icon_pos == GTK_ENTRY_ICON_SECONDARY) {
+
+    GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+
+    char *dbErrorMsg = NULL;
+    int rc = 0;
+    sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+    gtk_list_store_clear(dataStore);
+
+    rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      printf("SQL error while restoring ebook list in clear functon: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
+
+    gtk_entry_set_text(entry, "");
+
+  } else {
+    search_handle_search(entry, user_data);
+  }
+}
+
+void search_handle_search(GtkEntry* entry, gpointer user_data) {
+  const gchar *text = gtk_entry_get_text(entry);
+  char *trimmedText = NULL;
+
+  int retVal = trim(text, &trimmedText, false);
+  char *dbErrorMsg = NULL;
+  int rc = 0;
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  gtk_list_store_clear(dataStore);
+
+  if (retVal != 0) {
+    char dbStmt[120 + (retVal * 2)];
+    sprintf(dbStmt, "SELECT format, author, title FROM ebook_collection WHERE author LIKE \"%%%s%%\" OR title LIKE \"%%%s%%\" ORDER BY author, title ASC", trimmedText, trimmedText);
+
+    rc = sqlite3_exec(db, dbStmt, add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      printf("SQL error while filtering ebook list: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      free(trimmedText);
+      return;
+    }
+  }
+
+  rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    printf("SQL error while restoring ebook list: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  free(trimmedText);
+}
 
 //------------------------------------------------------------------------------
 gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
