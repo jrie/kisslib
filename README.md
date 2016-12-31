@@ -149,7 +149,10 @@ And then run "./kisslib" to open kisslib.
 
 
 ## ToDo and future plans
-* Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)
+
+Striked out items are implemented already.
+
+* ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
 * Add the ability to sort by format, author and title
 * Add a option to sort by default on format, authors or title on startup
