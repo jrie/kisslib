@@ -408,6 +408,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   //----------------------------------------------------------------------------
 
   int error;
+  bool useToc = false;
   zip_t *epubFile = zip_open(fileName, ZIP_RDONLY, &error);
 
   if (epubFile == NULL) {
@@ -415,16 +416,22 @@ bool read_epub(char fileName[], fileInfo *fileData) {
     return false;
   }
 
-  zip_int64_t tocIndex = zip_name_locate(epubFile, "toc.ncx", ZIP_FL_NOCASE|ZIP_FL_NODIR);
+  zip_int64_t tocIndex = zip_name_locate(epubFile, "content.opf", ZIP_FL_NOCASE|ZIP_FL_NODIR);
+
   if (tocIndex == -1) {
-    printf("Cannot find information file in epub.\n");
-    zip_discard(epubFile);
-    return false;
+    tocIndex = zip_name_locate(epubFile, "toc.ncx", ZIP_FL_NOCASE|ZIP_FL_NODIR);
+    if (tocIndex == -1) {
+      printf("Cannot find information file in epub.\n");
+      zip_discard(epubFile);
+      return false;
+    } else {
+      useToc = true;
+    }
   }
 
   zip_stat_t *tocStat = malloc(sizeof(zip_stat_t));
   if (zip_stat_index(epubFile, tocIndex, ZIP_FL_UNCHANGED, tocStat) == -1) {
-    printf("libzip error, cannot read out toc file stats.\n");
+    printf("libzip error, cannot read out %s file stats.\n", useToc ? "toc" : "content");
     zip_discard(epubFile);
     free(tocStat);
 
@@ -434,7 +441,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
 
   zip_file_t *tocFile = zip_fopen_index(epubFile, tocIndex, ZIP_FL_UNCHANGED);
   if (tocFile == NULL) {
-    printf("libzip error, cannot open toc file.\n");
+    printf("libzip error, cannot open %s file.\n", useToc ? "toc" : "content");
     zip_discard(epubFile);
     return false;
   }
@@ -444,57 +451,191 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   char data[buffer];
 
   if (buffer != zip_fread(tocFile, data, buffer)) {
-    printf("libzip error, size of data read of toc file mismatch estimate.");
+    printf("libzip error, size of data read of %s file estimate mismatch.\n", useToc ? "toc" : "content");
     return false;
   }
 
   //----------------------------------------------------------------------------
 
-  unsigned int dataPos = 0;
+  if (useToc) {
+    char currentChar = '\0';
 
-  char readBuffer[1024];
-  unsigned int readBufferPos = 0;
+    char readBuffer[1024];
+    unsigned int readBufferPos = 0;
+    unsigned int dataPos = 0;
+    bool doRecord = false;
+    bool inTitle = false;
+    bool skippedInnerText = false;
 
-  bool doRecord = false;
-  char currentChar = '\0';
+    while((currentChar = data[dataPos++]) != '\0') {
+      if (currentChar == '<') {
+        doRecord = true;
 
-  bool inTitle = false;
-  bool skippedInnerText = false;
+        if (skippedInnerText) {
+          break;
+        } else if (!inTitle) {
+          readBufferPos = 0;
+        }
 
-  while((currentChar = data[dataPos++]) != '\0') {
-    if (currentChar == '<') {
-      doRecord = true;
+        continue;
+      } else if (currentChar == '>') {
+        if (strncmp(readBuffer, "docTitle", 8) == 0) {
+          inTitle = true;
+        } else if (inTitle) {
+          if (strncmp(readBuffer, "/docTitle", 9) == 0) {
+            break;
+          } else if (strncmp(readBuffer, "text", 4) == 0) {
+            skippedInnerText = true;
+          }
+        }
 
-      if (skippedInnerText) {
-        break;
-      } else if (!inTitle) {
         readBufferPos = 0;
+        continue;
       }
 
-      continue;
-    } else if (currentChar == '>') {
-      if (strncmp(readBuffer, "docTitle", 8) == 0) {
-        inTitle = true;
-      } else if (inTitle) {
-        if (strncmp(readBuffer, "/docTitle", 9) == 0) {
-          break;
-        } else if (strncmp(readBuffer, "text", 4) == 0) {
-          skippedInnerText = true;
+      if (doRecord) {
+        if (currentChar > 24) {
+          readBuffer[readBufferPos++] = currentChar;
+
+          if (readBufferPos == 1024) {
+            readBufferPos = 0;
+          }
         }
       }
-
-      readBufferPos = 0;
-      continue;
     }
 
-    if (doRecord) {
-      if (currentChar > 24) {
-        readBuffer[readBufferPos++] = currentChar;
+    // Output
+    char title[readBufferPos != 0 ? readBufferPos+8 : strlen(fileName)+8];
+    if (readBufferPos != 0) {
+      readBuffer[readBufferPos] = '\0';
+      //printf("Title(%s)\n", readBuffer);
+      sprintf(title, "Title(%s)", readBuffer);
+    } else {
+      sprintf(title, "Title(%s)", fileName);
+    }
 
-        if (readBufferPos == 1024) {
+    fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
+    fileData->entries[fileData->count] = malloc(sizeof(char) * (strlen(title)+1));
+    strcpy(fileData->entries[fileData->count], title);
+
+    fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
+    fileData->types[fileData->count] = 1;
+    ++fileData->count;
+
+  } else {
+    // Use content.opf
+
+    char *readBuffer = calloc(buffer+1, sizeof(char));
+    char key = '\0';
+    unsigned int dataPos = 0;
+    unsigned int readBufferPos = 0;
+
+    bool inAttribute = false;
+    bool inMeta = false;
+    bool inXMLData = false;
+    bool nextIsMeta = false;
+
+    char *dataTitle = NULL;
+    char *dataAuthor = NULL;
+    char **dataPointer = NULL;
+
+    while ((key = data[dataPos++]) != '\0') {
+      if (!inAttribute && key == '<') {
+        inAttribute = true;
+        inXMLData = false;
+        readBufferPos = 0;
+      } else if (!inXMLData && key == '/') {
+        inAttribute = false;
+        inMeta = false;
+        inXMLData = false;
+        readBufferPos = 0;
+      } else {
+        readBuffer[readBufferPos++] = key;
+      }
+
+      if (inAttribute) {
+        if (!inXMLData && !inMeta) {
+          if (strncmp(readBuffer, "meta ", 5) == 0) {
+            inMeta = true;
+            readBufferPos = 0;
+          }
+        } else if (inMeta && !inXMLData) {
+          if (key == ' ' || key == '\"') {
+            readBuffer[readBufferPos-1] = '\0';
+            if (strncmp(readBuffer, "dcterms:", 8) == 0) {
+              nextIsMeta = true;
+              char metaType[strlen(&readBuffer[8]) + 1];
+              strcpy(metaType, &readBuffer[8]);
+
+              //printf("Meta: %s\n", metaType);
+
+              if (strcmp(metaType, "title") == 0) {
+                dataPointer = &dataTitle;
+                *dataPointer = (char*) malloc(buffer * sizeof(char));
+              } else if (strcmp(metaType, "creator") == 0) {
+                dataPointer = &dataAuthor;
+                *dataPointer = (char*) malloc(buffer * sizeof(char));
+              } else {
+                dataPointer = NULL;
+              }
+            }
+
+            readBufferPos = 0;
+          }
+        }
+
+        if (!inXMLData && key == '>') {
+          readBufferPos = 0;
+          inXMLData = true;
+        }
+
+        if (inXMLData && key == '<') {
+          inXMLData = false;
+          if (nextIsMeta) {
+            nextIsMeta = false;
+            readBuffer[readBufferPos-1] = '\0';
+            if (dataPointer != NULL) {
+              strcpy(*dataPointer, readBuffer);
+            }
+
+            //printf("Metadata:\n%s\n", readBuffer);
+          }
+
           readBufferPos = 0;
         }
       }
+    }
+
+    //--------------------------------------------------------------------------
+    char title[dataTitle != NULL ? strlen(dataTitle)+8 : strlen(fileName)+8];
+    if (dataTitle != NULL) {
+      sprintf(title, "Title(%s)", dataTitle);
+    } else {
+      sprintf(title, "Title(%s)", fileName);
+    }
+
+    fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
+    fileData->entries[fileData->count] = malloc(sizeof(char) * (strlen(title)+1));
+    strcpy(fileData->entries[fileData->count], title);
+
+    fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
+    fileData->types[fileData->count] = 1;
+    ++fileData->count;
+
+    free(dataTitle);
+
+    if (dataAuthor != NULL) {
+      char author[strlen(dataAuthor)+8];
+      sprintf(author, "Author(%s)", dataAuthor);
+      fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
+      fileData->entries[fileData->count] = malloc(sizeof(char) * (strlen(author)+1));
+      strcpy(fileData->entries[fileData->count], author);
+
+      fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
+      fileData->types[fileData->count] = 2;
+      ++fileData->count;
+
+      free(dataAuthor);
     }
   }
 
@@ -505,23 +646,6 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   free(tocFile);
 
   //----------------------------------------------------------------------------
-  // Output
-  char title[readBufferPos != 0 ? readBufferPos+8 : strlen(fileName)+8];
-  if (readBufferPos != 0) {
-    readBuffer[readBufferPos] = '\0';
-    //printf("Title(%s)\n", readBuffer);
-    sprintf(title, "Title(%s)", readBuffer);
-  } else {
-    sprintf(title, "Title(%s)", fileName);
-  }
-
-  fileData->entries = (char**) realloc(fileData->entries, sizeof(char*) * (fileData->count + 1));
-  fileData->entries[fileData->count] = malloc(sizeof(char) * (strlen(title)+1));
-  strcpy(fileData->entries[fileData->count], title);
-
-  fileData->types = (int*) realloc(fileData->types, sizeof(int) * (fileData->count+1));
-  fileData->types[fileData->count] = 1;
-  ++fileData->count;
 
   return true;
 }
