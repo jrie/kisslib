@@ -958,6 +958,12 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *labelPath = gtk_label_new("Path:");
   GtkWidget *labelFormat = gtk_label_new("Format:");
 
+  gtk_label_set_xalign(GTK_LABEL(labelPath), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelFileName), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelFormat), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelAuthor), 0);
+  gtk_label_set_xalign(GTK_LABEL(labelTitle), 0);
+
   g_object_set(G_OBJECT(labelPath), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFileName), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFormat), "margin-top", 12, "margin-left", 6, NULL);
@@ -2019,7 +2025,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     }
 
     if (!retVal) {
-      printf("Error reading out file \"%s\"", cleanedPath);
+      printf("Error reading out file \"%s\"\n", cleanedPath);
       free(cleanedFileName);
       free(cleanedPath);
       return false;
