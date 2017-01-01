@@ -48,34 +48,35 @@ typedef struct argumentStore {
 void run(GtkApplication*, gpointer);
 void handle_launchCommand(GtkWidget*);
 
-
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
+
 void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
+void handle_sort_column(GtkTreeViewColumn*, gpointer);
 
 void search_icon_click(GtkEntry*, GtkEntryIconPosition, GdkEvent*, gpointer);
 void search_handle_search(GtkEntry*, gpointer);
 
-void handle_sort_column(GtkTreeViewColumn*, gpointer);
-
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
+bool retrieve_handler_arguments(struct argumentStore*, const char *);
+void free_handler_arguments(struct argumentStore*);
 
 void menuhandle_meQuit(GtkMenuItem*, gpointer);
 void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
-void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
+void open_importFiles_window(GObject*);
 
-bool retrieve_handler_arguments(struct argumentStore*, const char *);
-void free_handler_arguments(struct argumentStore*);
-int trim(const char*, char**, bool);
+void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
+void open_launcher_window(GObject*);
+
+void menuhandle_meEditEntry(GtkMenuItem*, gpointer);
+void open_edit_window(GObject*);
 
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
 
-void menuhandle_meEditEntry(GtkMenuItem*, gpointer);
-void open_edit_window(GObject*);
 void edit_entry_close(GtkButton*, gpointer);
 void edit_entry_save_data(GtkButton*, gpointer);
 
@@ -83,6 +84,7 @@ void fileChooser_close(GtkButton*, gpointer);
 void fileChooser_importFiles(GtkButton*, gpointer);
 
 // Db related
+int trim(const char*, char**, bool);
 int add_db_data_to_store(void*, int, char**, char**);
 
 int fill_db_answer(void*, int, char**, char**);
@@ -430,7 +432,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkIconInfo *infoOpenIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
   GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
 
-  if (iconError != NULL) {
+  if (infoIcon == NULL) {
     printf("Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
     g_error_free(iconError);
   } else {
@@ -529,6 +531,9 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(meImportFiles), "db", g_object_get_data(G_OBJECT(app), "db"));
   g_signal_connect(G_OBJECT(meImportFiles), "activate", G_CALLBACK(menuhandle_meImportFiles), NULL);
 
+  g_object_set_data(G_OBJECT(window), "menuSetLauncher", GTK_MENU_ITEM(meSetLauncher));
+  g_object_set_data(G_OBJECT(window), "menuImportFiles", GTK_MENU_ITEM(meImportFiles));
+
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
 
@@ -547,6 +552,10 @@ void menuhandle_meQuit(GtkMenuItem *menuitem, gpointer user_data) {
 
 //------------------------------------------------------------------------------
 void menuhandle_meSetLauncher(GtkMenuItem *menuitem, gpointer user_data) {
+  open_launcher_window(G_OBJECT(menuitem));
+}
+
+void open_launcher_window(GObject* menuitem) {
   GtkWidget *launcherWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(launcherWindow), true);
 
@@ -1290,6 +1299,10 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
 
 //------------------------------------------------------------------------------
 void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
+  open_importFiles_window(G_OBJECT(menuitem));
+}
+
+void open_importFiles_window(GObject* menuitem) {
   GtkWidget *fileChooserWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(fileChooserWindow), true);
 
@@ -1365,7 +1378,6 @@ void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_window_set_modal(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_position(GTK_WINDOW(fileChooserWindow), GTK_WIN_POS_CENTER_ON_PARENT);
 }
-
 
 //------------------------------------------------------------------------------
 
@@ -1748,6 +1760,19 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
         open_edit_window(G_OBJECT(widget));
         return true;
       }
+      break;
+    case 119:
+      // W key
+      if (event->state == 20) {
+        open_launcher_window(G_OBJECT(widget));
+      }
+      break;
+    case 97:
+      // A key
+      if (event->state == 20) {
+        open_importFiles_window(G_OBJECT(widget));
+      }
+      break;
     default:
       //printf("key pressed: %u - %d\n", event->keyval, event->state);
       return false;
