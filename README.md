@@ -39,11 +39,18 @@ The screenshots are taken under Debian Stretch using Xfce desktop with default s
 A gallery with screenshots (also development steps), newest first, can be found here:
 https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
-Examples of KISS Ebook
+Examples of KISS Ebook:
+
+Main interfance (dark 'Breeze' theme):
+
+[![Screenshot of main interface with search](https://www.picflash.org/img/2016/12/31/TBffvpana7qjimmfj.png "Main interface with integrated search")] (https://www.picflash.org/viewer.php?img=ffvpana7qjimmfj.png)
+
+Screenshot during import:
 
 [![Screenshot Kiss Ebook during import](https://www.picflash.org/img/2016/12/22/TB2e8osytx7rywios.png "Screenshot Kiss Ebook during import")] (https://www.picflash.org/viewer.php?img=2e8osytx7rywios.png)
 
-And on default Xfce (Debian Testing):
+
+And on default Xfce with base theme on Debian Testing, older screenshot without search:
 
 [![Screenshot Kiss Ebook with opened edit ebook details-dialog](https://www.picflash.org/img/2016/12/29/TBtiobsygvs14u1mu.png "Screenshot Kiss Ebook with opened edit ebook details-dialog")] (https://www.picflash.org/viewer.php?img=tiobsygvs14u1mu.png)
 
@@ -156,7 +163,7 @@ Striked out items are implemented already.
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
 * Add the ability to sort by format, author and title
 * Add a option to sort by default on format, authors or title on startup
-* Add a search option to only show files with particular tile, author or format
+* ~~Add a search option to only show files with particular title and author~~
 * Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers (please propose your favorite readers by raising an issue or by email! I know only a mouthful and not every distro/flavour)
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
