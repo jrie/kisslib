@@ -57,6 +57,8 @@ void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpoint
 void search_icon_click(GtkEntry*, GtkEntryIconPosition, GdkEvent*, gpointer);
 void search_handle_search(GtkEntry*, gpointer);
 
+void handle_sort_column(GtkTreeViewColumn*, gpointer);
+
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
 
@@ -465,12 +467,13 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_cell_renderer_set_padding(ebookListTitle, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTitle);
 
-
-
-  //TODO: Add a sort function for columns?
-  // gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
-
-
+  // Sorting of columns
+  gtk_tree_view_column_set_clickable(columnFormat, true);
+  gtk_tree_view_column_set_clickable(columnAuthor, true);
+  gtk_tree_view_column_set_clickable(columnTitle, true);
+  g_signal_connect(G_OBJECT(columnFormat), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnAuthor), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnTitle), "clicked", G_CALLBACK(handle_sort_column), ebookList);
 
   // The main menu -------------------------------------------------------------
   // TODO: Should the main menu use images?
@@ -1853,6 +1856,22 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
   }
 
   free(trimmedText);
+}
+
+
+//------------------------------------------------------------------------------
+void handle_sort_column(GtkTreeViewColumn* column, gpointer user_data) {
+  gint offset = gtk_tree_view_column_get_x_offset(column);
+  if (offset >= 40) {
+    gtk_tree_view_column_set_sort_indicator(column, true);
+    if (offset < 125) {
+      gtk_tree_view_column_set_sort_column_id(column, 1);
+    } else if (offset >= 125 && offset <= 150) {
+      gtk_tree_view_column_set_sort_column_id(column, 2);
+    } else {
+      gtk_tree_view_column_set_sort_column_id(column, 3);
+    }
+  }
 }
 
 

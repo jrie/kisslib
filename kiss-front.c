@@ -58,6 +58,8 @@ void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpoint
 void search_icon_click(GtkEntry*, GtkEntryIconPosition, GdkEvent*, gpointer);
 void search_handle_search(GtkEntry*, gpointer);
 
+void handle_sort_column(GtkTreeViewColumn*, gpointer);
+
 bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
 int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
 
@@ -272,9 +274,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *ebookList;
 
-  GtkCellRenderer *ebookListRender;
-  GtkTreeViewColumn *column;
-  GtkTreeIter iter;
+
 
   window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(window), "KISS Ebook Starter");
@@ -296,6 +296,8 @@ void run(GtkApplication *app, gpointer user_data) {
   );
 
   /*
+  GtkTreeIter iter;
+
   gtk_list_store_append(dataStore, &iter);
   gtk_list_store_set(dataStore, &iter,
     FORMAT_COLUMN, "pdf",
@@ -436,47 +438,48 @@ void run(GtkApplication *app, gpointer user_data) {
     g_object_set(G_OBJECT(imageRenderer), "pixbuf", infoIcon, NULL);
     gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
 
-    column = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
-    gtk_tree_view_column_set_resizable(column, false);
-    gtk_tree_view_column_set_min_width(column, 50);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
+    GtkTreeViewColumn *columnOpen = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
+    gtk_tree_view_column_set_resizable(columnOpen, false);
+    gtk_tree_view_column_set_min_width(columnOpen, 50);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnOpen);
   }
 
 
-  ebookListRender = gtk_cell_renderer_text_new();
-  gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
+  GtkCellRenderer *ebookListFormat = gtk_cell_renderer_text_new();
+  gtk_cell_renderer_set_padding(ebookListFormat, 5, 8);
 
-  column = gtk_tree_view_column_new_with_attributes("Format", ebookListRender, "text", FORMAT_COLUMN, NULL);
-  gtk_tree_view_column_set_resizable(column, false);
-  gtk_tree_view_column_set_min_width(column, 80);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
+  GtkTreeViewColumn *columnFormat = gtk_tree_view_column_new_with_attributes("Format", ebookListFormat, "text", FORMAT_COLUMN, NULL);
+  gtk_tree_view_column_set_resizable(columnFormat, false);
+  gtk_tree_view_column_set_min_width(columnFormat, 80);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnFormat);
 
-  ebookListRender = gtk_cell_renderer_text_new();
-  g_object_set(G_OBJECT(ebookListRender), "editable", true, NULL);
-  g_signal_connect(G_OBJECT(ebookListRender), "edited", G_CALLBACK(handle_editing_author), ebookList);
+  GtkCellRenderer *ebookListAuthor = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(ebookListAuthor), "editable", true, NULL);
+  g_signal_connect(G_OBJECT(ebookListAuthor), "edited", G_CALLBACK(handle_editing_author), ebookList);
 
-  column = gtk_tree_view_column_new_with_attributes("Author", ebookListRender, "text", AUTHOR_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(column, 110);
-  gtk_tree_view_column_set_resizable(column, true);
-  gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
+  GtkTreeViewColumn *columnAuthor = gtk_tree_view_column_new_with_attributes("Author", ebookListAuthor, "text", AUTHOR_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnAuthor, 110);
+  gtk_tree_view_column_set_resizable(columnAuthor, true);
+  gtk_cell_renderer_set_padding(ebookListAuthor, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnAuthor);
 
-  ebookListRender = gtk_cell_renderer_text_new();
-  g_object_set(G_OBJECT(ebookListRender), "editable", true, NULL);
-  g_signal_connect(G_OBJECT(ebookListRender), "edited", G_CALLBACK(handle_editing_title), ebookList);
+  GtkCellRenderer *ebookListTitle = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(ebookListTitle), "editable", true, NULL);
+  g_signal_connect(G_OBJECT(ebookListTitle), "edited", G_CALLBACK(handle_editing_title), ebookList);
 
-  column = gtk_tree_view_column_new_with_attributes("Title", ebookListRender, "text", TITLE_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(column, 240);
-  gtk_tree_view_column_set_resizable(column, true);
-  gtk_cell_renderer_set_padding(ebookListRender, 5, 8);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), column);
+  GtkTreeViewColumn *columnTitle = gtk_tree_view_column_new_with_attributes("Title", ebookListTitle, "text", TITLE_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnTitle, 240);
+  gtk_tree_view_column_set_resizable(columnTitle, true);
+  gtk_cell_renderer_set_padding(ebookListTitle, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTitle);
 
-
-
-  //TODO: Add a sort function
-  // gtk_tree_view_set_headers_clickable(GTK_TREE_VIEW(ebookList), true);
-
-
+  // Sorting of columns
+  gtk_tree_view_column_set_clickable(columnFormat, true);
+  gtk_tree_view_column_set_clickable(columnAuthor, true);
+  gtk_tree_view_column_set_clickable(columnTitle, true);
+  g_signal_connect(G_OBJECT(columnFormat), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnAuthor), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnTitle), "clicked", G_CALLBACK(handle_sort_column), ebookList);
 
   // The main menu -------------------------------------------------------------
   // TODO: Should the main menu use images?
@@ -1859,6 +1862,23 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
   free(trimmedText);
 }
 
+
+//------------------------------------------------------------------------------
+void handle_sort_column(GtkTreeViewColumn* column, gpointer user_data) {
+  gint offset = gtk_tree_view_column_get_x_offset(column);
+  if (offset >= 40) {
+    gtk_tree_view_column_set_sort_indicator(column, true);
+    if (offset < 125) {
+      gtk_tree_view_column_set_sort_column_id(column, 1);
+    } else if (offset >= 125 && offset <= 150) {
+      gtk_tree_view_column_set_sort_column_id(column, 2);
+    } else {
+      gtk_tree_view_column_set_sort_column_id(column, 3);
+    }
+  }
+}
+
+
 //------------------------------------------------------------------------------
 gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
@@ -2159,9 +2179,6 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
     );
-
-    printf("DbStm:\n%s\n", dbStm);
-
 
     int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
