@@ -56,12 +56,13 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## Where does it work? - Tested working on...
-* Debian Sid/Unstable and Stretch/Testing (Tested 28.12.2016)
+* Debian Sid/Unstable and Stretch/Testing "kisslib" (Tested 28.12.2016)
 * Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (Tested 28.12.2016)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 30.12.2016)
-* Sparky linux (Tested 30.12.2016)
+* Sparky linux using "kisslib" binary (Tested 30.12.2016)
+* Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
@@ -122,6 +123,11 @@ In case a title is misleading, it is possible to get the actual file name into t
 
 For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
+Shortcuts:
+* "Ctrl-S" (Open a ebook)
+* "Ctrl-E" (Edit ebook details)
+* "Ctrl-W" (Set launcher dialog)
+* "Ctrl-A" (Add files or folders dialog)
 
 ## Compiling
 
@@ -169,6 +175,18 @@ Striked out items are implemented already.
 
 
 ## Known issues
+
+##### General
 * If you upgrade from a previous version and there are any sql errors while saving the launcher applications, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your ebooks after this step
-* In some cases the dialog for "import files and folders", "edit ebook details" and "set launcher applciations" are opened **behind** the main window. Please note that when those dialogs are open, and the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs, please report it if you see this happening on any distro mentioned
+* In some cases the dialog for "import files and folders", "edit ebook details" and "set launcher applciations" are **opened but behind the main window**. Please note that when those dialogs are open, and the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs, please report it if you see this happening on any distro mentioned
 * found another issue? (please report it or email me)
+
+##### Ubuntu 16.10
+
+Using the "kisslib" bianry version:
+
+* The main menu is shown, but not accessible - the only work around, right now, is to use the keyboard shortcuts instead of the menus, "Ctrl-S" (Open a ebook), "Ctrl-E" (Edit ebook details), "Ctrl-W" (Set launcher dialog), "Ctrl-A" (Add files or folders dialog)
+* The sorting for the format does not work correctly, the author and title so can be sorted... the only way to get it right working is to compile the non-jessie version yourself
+* found another issue? (please report it or email me)
+
+
