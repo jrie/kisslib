@@ -161,7 +161,7 @@ Striked out items are implemented already.
 
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
-* Add the ability to sort by format, author and title
+* ~~Add the ability to sort by format, author and title columns~~
 * Add a option to sort by default on format, authors or title on startup
 * ~~Add a search option to only show files with particular title and author~~
 * Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers (please propose your favorite readers by raising an issue or by email! I know only a mouthful and not every distro/flavour)
