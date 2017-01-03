@@ -66,6 +66,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * openSuse Tumbleweed (Tested 30.12.2016)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
+* Arch OS "new kisslib binary" (Tested 03.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
