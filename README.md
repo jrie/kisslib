@@ -168,7 +168,7 @@ And then run "./kisslib" to open kisslib.
 
 Striked out items are implemented already and thank you for all your feedback so far who contributed!
 
-I try to make things happen, as possible.
+I try to make things happen, if possible.
 
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
