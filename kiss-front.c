@@ -271,19 +271,13 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
 }
 
 void run(GtkApplication *app, gpointer user_data) {
-  GtkWidget *window;
-  GtkWidget *grid;
 
-  GtkWidget *ebookList;
-
-
-
-  window = gtk_application_window_new(app);
+  GtkWidget *window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(window), "KISS Ebook Starter");
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 400);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
-  grid = gtk_grid_new();
+  GtkWidget *grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(window), grid);
 
 
@@ -357,7 +351,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   //----------------------------------------------------------------------------
 
-  ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
+  GtkWidget *ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
 
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
   gtk_widget_set_hexpand(ebookList, true);
@@ -539,6 +533,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   // Menu code end -------------------------------------------------------------
   g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
+
 
   gtk_widget_show_all(window);
 }
@@ -749,7 +744,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", launcherWindow);
-  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(launcherWindow_close), NULL);
+  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(launcherWindow_close), launcherWindow);
 
   GtkWidget *saveButton = gtk_button_new_with_label("Save");
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
@@ -767,7 +762,7 @@ void open_launcher_window(GObject* menuitem) {
   gtk_entry_grab_focus_without_selecting(GTK_ENTRY(entryPDF));
   gtk_widget_show_all(launcherWindow);
 
-  gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(launcherWindow));
+  //gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(launcherWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(launcherWindow), true);
   gtk_window_set_position(GTK_WINDOW(launcherWindow), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(launcherWindow), true);
@@ -1178,7 +1173,7 @@ void open_edit_window(GObject *dataItem) {
 
   gtk_widget_show_all(editWindow);
 
-  gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(dataItem), "appWindow")), GTK_WINDOW(editWindow));
+  //gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(dataItem), "appWindow")), GTK_WINDOW(editWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(editWindow), true);
   gtk_window_set_position(GTK_WINDOW(editWindow), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(editWindow), true);
@@ -1373,7 +1368,7 @@ void open_importFiles_window(GObject* menuitem) {
   gtk_window_activate_focus(GTK_WINDOW(fileChooserWindow));
   gtk_widget_show_all(fileChooserWindow);
 
-  gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
+  //gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
   gtk_window_set_destroy_with_parent(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_modal(GTK_WINDOW(fileChooserWindow), true);
   gtk_window_set_position(GTK_WINDOW(fileChooserWindow), GTK_WIN_POS_CENTER_ON_PARENT);
@@ -1749,27 +1744,27 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
       break;
     case 115:
       // S key
-      if (event->state == 20) { // Strg Pressed
+      if (event->state == GDK_CONTROL_MASK) { // Strg Pressed
         handle_launchCommand(widget);
         return true;
       }
       break;
     case 101:
       // E key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_edit_window(G_OBJECT(widget));
         return true;
       }
       break;
     case 119:
       // W key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_launcher_window(G_OBJECT(widget));
       }
       break;
     case 97:
       // A key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_importFiles_window(G_OBJECT(widget));
       }
       break;
@@ -1807,7 +1802,7 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 
       sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
       char stmt[90+strlen(authorStr)+strlen(titleStr)];
-      sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", format, authorStr, titleStr);
+      sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
       int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
       if (rc != SQLITE_OK) {

@@ -271,17 +271,13 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
 }
 
 void run(GtkApplication *app, gpointer user_data) {
-  GtkWidget *window;
-  GtkWidget *grid;
 
-  GtkWidget *ebookList;
-
-  window = gtk_application_window_new(app);
+  GtkWidget *window = gtk_application_window_new(app);
   gtk_window_set_title(GTK_WINDOW(window), "KISS Ebook Starter");
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 400);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
-  grid = gtk_grid_new();
+  GtkWidget *grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(window), grid);
 
 
@@ -353,7 +349,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 5, 1);
 
 
-  ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
+  GtkWidget *ebookList = gtk_tree_view_new_with_model(GTK_TREE_MODEL(dataStore));
 
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(ebookList), true);
   gtk_widget_set_hexpand(ebookList, true);
@@ -1746,27 +1742,27 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
       break;
     case 115:
       // S key
-      if (event->state == 20) { // Strg Pressed
+      if (event->state == GDK_CONTROL_MASK) { // Strg Pressed
         handle_launchCommand(widget);
         return true;
       }
       break;
     case 101:
       // E key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_edit_window(G_OBJECT(widget));
         return true;
       }
       break;
     case 119:
       // W key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_launcher_window(G_OBJECT(widget));
       }
       break;
     case 97:
       // A key
-      if (event->state == 20) {
+      if (event->state == GDK_CONTROL_MASK) {
         open_importFiles_window(G_OBJECT(widget));
       }
       break;
