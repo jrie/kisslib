@@ -8,6 +8,7 @@
 
 // GTK3
 #include <gtk/gtk.h>
+#include <gdk/gdk.h>
 #include <gio/gio.h>
 
 //SQLite3
@@ -1649,52 +1650,42 @@ void handle_launchCommand(GtkWidget* widget) {
   //----------------------------------------------------------------------------
 
   char launchString[strlen(launcher) + (args != NULL ? strlen(args) : 0) + (strlen(filePath) * 3) + 2];
-
-  char fileRegPath[strlen(filePath) + 1];
-  int readPos = strrchr(filePath, '/') - filePath;
-
-  strncpy(fileRegPath, filePath, readPos+1);
-  fileRegPath[readPos+1] = '\0';
+  int readPos = 0;
 
   if (args != NULL) {
-    sprintf(launchString, "%s %s %s", launcher, args, fileRegPath);
+    sprintf(launchString, "%s %s ", launcher, args);
   } else {
-    sprintf(launchString, "%s %s", launcher, fileRegPath);
+    sprintf(launchString, "%s ", launcher);
   }
 
   char escapeChars[13] = " $.*/()[\\]^";
 
-  if (readPos != 0) {
-    readPos++;
+  int writePos = strlen(launchString);
+  bool isEscapingChar = false;
+  char key = '\0';
+  char subkey = '\0';
+  int readSub = 0;
 
-    int writePos = strlen(launchString);
-    bool isEscapingChar = false;
-    char key = '\0';
-    char subkey = '\0';
-    int readSub = 0;
-
-    while((key = filePath[readPos++]) != '\0') {
-      readSub = 0;
-      isEscapingChar = false;
-      while ((subkey = escapeChars[readSub++]) != '\0') {
-        if (subkey == key) {
-          isEscapingChar = true;
-          break;
-        }
+  while((key = filePath[readPos++]) != '\0') {
+    readSub = 0;
+    isEscapingChar = false;
+    while ((subkey = escapeChars[readSub++]) != '\0') {
+      if (subkey == key) {
+        isEscapingChar = true;
+        break;
       }
-
-      if (isEscapingChar) {
-        launchString[writePos++] = '\\';
-        launchString[writePos++] = key;
-      } else {
-        launchString[writePos++] = key;
-      }
-
     }
 
-    launchString[writePos] = '\0';
+    if (isEscapingChar) {
+      launchString[writePos++] = '\\';
+      launchString[writePos++] = key;
+    } else {
+      launchString[writePos++] = key;
+    }
+
   }
 
+  launchString[writePos] = '\0';
 
   pid_t child_pid = fork();
   if (child_pid >= 0) {
@@ -1737,6 +1728,8 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeView
 gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
   bool pressedDelete = false;
 
+  GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
+
   switch (event->keyval) {
     case 65535:
       // Delete key
@@ -1744,27 +1737,27 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
       break;
     case 115:
       // S key
-      if (event->state == GDK_CONTROL_MASK) { // Strg Pressed
+      if ((event->state & modifiers) == GDK_CONTROL_MASK) { // Strg Pressed
         handle_launchCommand(widget);
         return true;
       }
       break;
     case 101:
       // E key
-      if (event->state == GDK_CONTROL_MASK) {
+      if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_edit_window(G_OBJECT(widget));
         return true;
       }
       break;
     case 119:
       // W key
-      if (event->state == GDK_CONTROL_MASK) {
+      if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_launcher_window(G_OBJECT(widget));
       }
       break;
     case 97:
       // A key
-      if (event->state == GDK_CONTROL_MASK) {
+      if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_importFiles_window(G_OBJECT(widget));
       }
       break;
