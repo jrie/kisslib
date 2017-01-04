@@ -12,7 +12,7 @@ A kiss principle ebook quick launcher application for Linux systems
 - [Can I? - Is it easy to use? - File support and usage guide](https://github.com/jrie/kisslib#can-i-is-it-easy-to-use---file-support-and-usage-guide)
 - [Compiling](https://github.com/jrie/kisslib#compiling)
 - [Compiling of the "jessie" versions, not only Debian Jessie](https://github.com/jrie/kisslib#compilation-of-the-jessie-version-not-only-debian-jessie)
-- [ToDos and future plans](https://github.com/jrie/kisslib#todo-and-future-plans)
+- [ToDos and future plans / Wishlist](https://github.com/jrie/kisslib#todo-and-future-plans-wishlist)
 - [Known issues](https://github.com/jrie/kisslib#known-issues)
 
 
@@ -66,7 +66,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * openSuse Tumbleweed (Tested 30.12.2016)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
-* Arch OS "new kisslib binary" (Tested 03.01.2017)
+* Arch OS "kisslib" binary (Tested 03.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
@@ -165,7 +165,7 @@ Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
 
 
-## ToDo and future plans
+## ToDo and future plans / Wishlist
 
 Striked out items are implemented already and thank you for all your feedback so far who contributed!
 
@@ -183,6 +183,7 @@ I try to make things happen, if possible.
 * Add tags, so ebooks can be tagged with short terms to make a search for particular books easier
 * Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too
 * Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns
+* Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
