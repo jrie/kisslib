@@ -12,7 +12,7 @@ A kiss principle ebook quick launcher application for Linux systems
 - [Can I? - Is it easy to use? - File support and usage guide](https://github.com/jrie/kisslib#can-i-is-it-easy-to-use---file-support-and-usage-guide)
 - [Compiling](https://github.com/jrie/kisslib#compiling)
 - [Compiling of the "jessie" versions, not only Debian Jessie](https://github.com/jrie/kisslib#compilation-of-the-jessie-version-not-only-debian-jessie)
-- [ToDos and future plans / Wishlist](https://github.com/jrie/kisslib#todo-and-future-plans-wishlist)
+- [ToDos and future plans / Wishlist](https://github.com/jrie/kisslib#todo-and-future-plans--wishlist)
 - [Known issues](https://github.com/jrie/kisslib#known-issues)
 
 
