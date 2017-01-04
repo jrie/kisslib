@@ -30,6 +30,9 @@ Kiss Ebook shows you therefore the format, the authors and the titles of the ebo
 
 You also can, edit the authors and details inside Kisslib, which allow you a quicker navigation. The ebook itself is untouched in this process and those informations are only stored in the database.
 
+Its possible to filter the ebook list for ebooks. In order to do so, you use the search field. When you enter something and hit enter/return key, only ebooks where the titles and or authors match are shown in KISS Ebook. Sorting is still possible then. If you want to get rid of the filter again, you clear all text and hit Enter again.
+If you see the clear icon in the search bar right, a default GTK3 icon to clear a search, you can press this and then normal list, without any filter, is shown. This icon is not shown on any flavour so, unfortunately.
+
 Please also see the future plans and ToDo list of what Kiss Ebook should be able to do in the future, to aid you in managing your ebook collection(s).
 
 
@@ -63,6 +66,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * openSuse Tumbleweed (Tested 30.12.2016)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
+* Arch OS "new kisslib binary" (Tested 03.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
@@ -163,7 +167,9 @@ And then run "./kisslib" to open kisslib.
 
 ## ToDo and future plans
 
-Striked out items are implemented already.
+Striked out items are implemented already and thank you for all your feedback so far who contributed!
+
+I try to make things happen, if possible.
 
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
@@ -171,6 +177,12 @@ Striked out items are implemented already.
 * Add a option to sort by default on format, authors or title on startup
 * ~~Add a search option to only show files with particular title and author~~
 * Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers (please propose your favorite readers by raising an issue or by email! I know only a mouthful and not every distro/flavour)
+* Using "gettext" to make translations of the application available
+* Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance" books, like red or any other choosed color
+* Add the option to show/hide particular columns from the main view, for example by using a popup or in an options dialog
+* Add tags, so ebooks can be tagged with short terms to make a search for particular books easier
+* Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too
+* Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
@@ -183,7 +195,7 @@ Striked out items are implemented already.
 
 ##### Ubuntu 16.10
 
-Using the "kisslib" bianry version:
+Using the "kisslib" binary version:
 
 * The main menu is shown, but not accessible - the only work around, right now, is to use the keyboard shortcuts instead of the menus, "Ctrl-S" (Open a ebook), "Ctrl-E" (Edit ebook details), "Ctrl-W" (Set launcher dialog), "Ctrl-A" (Add files or folders dialog)
 * The open icon is not available, so the launch column is empty, but can be fully used to open an ebook when double clicking on it
