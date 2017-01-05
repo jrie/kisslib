@@ -4,7 +4,7 @@ A kiss principle ebook quick launcher application for Linux systems
 #### Quick navigation
 
 - [What is it about?](https://github.com/jrie/kisslib#whats-is-it-about)
-- [But why? Doesnt ebook reader XY do that?](https://github.com/jrie/kisslib#but-why-there-are-tons-of-good-readers-like-xy-the-movivation-behind-kiss-ebook)
+- [But why? Doesnt ebook reader XY do that?](https://github.com/jrie/kisslib#but-why-there-are-tons-of-good-readers-like-xy-the-motivation-behind-kiss-ebook)
 - [Show me! - Screenshot gallery link and previews](https://github.com/jrie/kisslib#show-me---screenshot-gallery)
 - [Where does it work? - Tested on...](https://github.com/jrie/kisslib#where-does-it-work---tested-working-on)
 - [I want to use it! - Not to compile...](https://github.com/jrie/kisslib#i-want-to-use-it-not-to-compile-heres-how)
@@ -21,8 +21,8 @@ kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook lau
 
 Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go through an ebook collection and launching an own defined viewer (if you like with commands) for the supported ebook types. While displaying general information about a ebook file like format, author and title.
 
-### But why? There are tons of good readers, like XY... the movivation behind KISS Ebook
-The motivation to write this application is simple. Most programs read out particular formats or maybe dont support all of them, so you need a special applciation to handle pdf, but not the same to handle chm files.
+### But why? There are tons of good readers, like XY... the motivation behind KISS Ebook
+The motivation to write this application is simple. Most programs read out particular formats or maybe dont support all of them, so you need a special program to handle pdf ebooks, but not the same to handle chm files.
 
 Kiss Ebook Starter simply allows you to read all supported ebook formats into Kiss Ebook and from there, launch the particular application you want, with the settings/commands you provide, for example opening all pdfs in full screen if you like that, if that is a feature supported by the viewer - for example through a command line option.
 
@@ -119,7 +119,7 @@ In this dialog, you can enter for each ebook type a program name, for example "e
 
 After saving and doing so once pdfs and other set then can be opened by clicking in the "Open icon" in the "Open" column of the particular ebook in the list or by pressing "Control-S" when the ebook is selected. If thats a pdf, "evince /home/tux/YourPDF.pdf" becomes executed and should happily open the PDF for you in this viewer.
 
-Please note, launcher applications can have now parameters added to them, for example "evince -f" would start evince in fullscreen when launched.
+Please note, launcher applications can have now parameters added to them, for example "evince -f" would start evince in fullscreen when launched with all files associated with this command.
 
 Also the author and title fields can be edited and are saved instantly in the table view or by pressing "Control-E", this will open the edit ebook details dialog, which is also available in "Operations" > "Edit ebook details".
 
@@ -178,7 +178,7 @@ I try to make things happen, if possible.
 * ~~Add a search option to only show files with particular title and author~~
 * Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers (please propose your favorite readers by raising an issue or by email! I know only a mouthful and not every distro/flavour)
 * Using "gettext" to make translations of the application available
-* Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance" books, like red or any other choosed color
+* Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance" books, like red or any other choosen color, perhaps pre-defined color values to pick from
 * Add the option to show/hide particular columns from the main view, for example by using a popup or in an options dialog
 * Add tags, so ebooks can be tagged with short terms to make a search for particular books easier
 * Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too
