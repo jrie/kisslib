@@ -4,11 +4,13 @@
 
 #include <gtk/gtk.h> // gtk_main_iteration (read_pdf)
 
+#define bufferSize 1024
+
 //------------------------------------------------------------------------------
 bool read_pdf(char fileName[], fileInfo *fileData) {
   FILE *inputFile;
 
-  inputFile = fopen(fileName, "r");
+  inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
     printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
@@ -21,7 +23,7 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
   char nextChar = '\0';
   bool doRecord = false;
 
-  char attributeBuffer[1024];
+  char attributeBuffer[bufferSize];
   int attributeWP = 0;
   bool collectAttribute = false;
   unsigned int offset = 0;
@@ -32,8 +34,11 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
   char xRef[64];
   int pos = 0;
 
-  while (!feof(inputFile)) {
-    currentChar = fgetc(inputFile);
+  char currentChar = '\0';
+  int charVal = 0;
+
+  while ((charVal = fgetc(inputFile)) != EOF) {
+    currentChar = (char) charVal;
 
     switch(currentChar) {
       case 'x':
@@ -60,11 +65,11 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 
   xRef[pos] = '\0';
 
-  int readUntil = atol(xRef);
+  long int readUntil = strtol(xRef, NULL, 10);
   rewind(inputFile);
 
 
-  if (readUntil == -1) {
+  if (readUntil == 0) {
     readUntil = fileEnd;
   }
 
@@ -127,7 +132,7 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 
     if (doRecord) {
       nextChar = fgetc(inputFile);
-      if (attributeWP == 1024 || currentChar == '\0') {
+      if (attributeWP == bufferSize || currentChar == '\0') {
         attributeBuffer[0] = '\0';
         attributeWP = 0;
       }
@@ -268,12 +273,14 @@ bool read_mobi(char fileName[], fileInfo *fileData) {
 
   //----------------------------------------------------------------------------
 
-  char currentChar = '\0';
-  char attributeBuffer[1024];
+  char attributeBuffer[bufferSize];
   int attributeWP = 0;
 
-  while (!feof(inputFile)) {
-    currentChar = fgetc(inputFile);
+  char currentChar = '\0';
+  int charVal = 0;
+
+  while ((charVal = fgetc(inputFile)) != EOF) {
+    currentChar = (char) charVal;
     if (currentChar == '\0') {
       break;
     }
@@ -304,22 +311,23 @@ bool read_mobi(char fileName[], fileInfo *fileData) {
 bool read_chm(char fileName[], fileInfo *fileData) {
   FILE *inputFile;
 
-  inputFile = fopen(fileName, "r");
+  inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
     printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
   }
 
-  char readBuffer[1024];
+  char readBuffer[bufferSize];
   unsigned int readBufferPos = 0;
 
   bool doRecord = false;
   bool captureTitle = false;
 
   char currentChar = '\0';
+  int charVal = 0;
 
-  while (!feof(inputFile)) {
-    currentChar = fgetc(inputFile);
+  while ((charVal = fgetc(inputFile)) != EOF) {
+    currentChar = (char) charVal;
 
     if (!doRecord && currentChar == 'H' && fgetc(inputFile) == 'H' && fgetc(inputFile) == 'A' && fgetc(inputFile) == ' ') {
       doRecord = true;
@@ -367,7 +375,7 @@ bool read_chm(char fileName[], fileInfo *fileData) {
         captureTitle = true;
       }
 
-      if (readBufferPos == 1024) {
+      if (readBufferPos == bufferSize) {
         readBufferPos = 0;
       }
     }
@@ -460,7 +468,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   if (useToc) {
     char currentChar = '\0';
 
-    char readBuffer[1024];
+    char readBuffer[bufferSize];
     unsigned int readBufferPos = 0;
     unsigned int dataPos = 0;
     bool doRecord = false;
@@ -497,7 +505,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
         if (currentChar > 24) {
           readBuffer[readBufferPos++] = currentChar;
 
-          if (readBufferPos == 1024) {
+          if (readBufferPos == bufferSize) {
             readBufferPos = 0;
           }
         }
