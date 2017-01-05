@@ -67,7 +67,7 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 
   xRef[pos] = '\0';
 
-  long int readUntil = strol(xRef, NULL, 10);
+  long int readUntil = strtol(xRef, NULL, 10);
   rewind(inputFile);
 
 
