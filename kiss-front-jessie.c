@@ -2209,9 +2209,9 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
                        + (author == NULL ? 7 : strlen(author))
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
 
-    char *dbStm = (char*) calloc((54 + additionSize), sizeof(char));
+    char *dbStm = (char*) calloc((58 + additionSize), sizeof(char));
 
-    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\");",
+    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",NULL);",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
