@@ -988,6 +988,19 @@ void menuhandle_meEditEntry(GtkMenuItem *menuitem, gpointer user_data) {
 }
 
 void open_edit_window(GObject *dataItem) {
+  //----------------------------------------------------------------------------
+  GtkWidget *treeView = g_object_get_data(G_OBJECT(dataItem), "treeview");
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeView));
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeView));
+  GtkTreeIter iter;
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
+
+  if (gtk_tree_selection_count_selected_rows(selection) == 0) {
+    return;
+  }
+
   GtkWidget *editWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(editWindow), true);
 
@@ -1078,15 +1091,6 @@ void open_edit_window(GObject *dataItem) {
   g_object_set_data(G_OBJECT(saveButton), "entryTitle", entryTitle);
   g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(edit_entry_save_data), NULL);
 
-  //----------------------------------------------------------------------------
-  GtkWidget *treeView = g_object_get_data(G_OBJECT(dataItem), "treeview");
-  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeView));
-  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeView));
-  GtkTreeIter iter;
-  gchar *formatStr;
-  gchar *authorStr;
-  gchar *titleStr;
-
   gtk_tree_selection_get_selected(selection, &model, &iter);
   gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
 
@@ -1123,10 +1127,6 @@ void open_edit_window(GObject *dataItem) {
     printf("SQL error during select: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
-    if (receiveFromDb.count == 0) {
-      return;
-    }
-
     get_db_answer_value(&receiveFromDb, "path", &filePath);
     get_db_answer_value(&receiveFromDb, "filename", &fileName);
     get_db_answer_value(&receiveFromDb, "format", &fileFormat);
