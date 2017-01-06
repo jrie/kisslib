@@ -589,8 +589,8 @@ void open_launcher_window(GObject* menuitem) {
     char getHandlerStmt[67];
     sprintf(getHandlerStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
 
-
     rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
     if (rc != SQLITE_OK) {
       printf("SQL error during selection: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
@@ -615,8 +615,11 @@ void open_launcher_window(GObject* menuitem) {
           break;
       }
 
-      get_db_answer_value(&receiveFromDb, "program", pointer);
-      get_db_answer_value(&receiveFromDb, "args", pointerArgs);
+      if (pointer != NULL) {
+        get_db_answer_value(&receiveFromDb, "program", pointer);
+        get_db_answer_value(&receiveFromDb, "args", pointerArgs);
+      }
+
       free_db_answer(&receiveFromDb);
     }
   }
@@ -1817,6 +1820,8 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
         format = 3;
       } else if (strcmp(formatStr, "chm") == 0) {
         format = 4;
+      } else {
+        return false;
       }
 
       char *dbErrorMsg = 0;
@@ -1944,6 +1949,8 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
     format = 3;
   } else if (strcmp(formatStr, "chm") == 0) {
     format = 4;
+  } else {
+    return false;
   }
 
   int dataLength = strlen(new_text);
