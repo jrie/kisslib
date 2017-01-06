@@ -538,7 +538,6 @@ bool read_epub(char fileName[], fileInfo *fileData) {
     unsigned int readBufferPos = 0;
 
     bool inAttribute = false;
-    bool inMeta = false;
     bool inXMLData = false;
     bool nextIsMeta = false;
 
@@ -553,7 +552,6 @@ bool read_epub(char fileName[], fileInfo *fileData) {
         readBufferPos = 0;
       } else if (!inXMLData && key == '/') {
         inAttribute = false;
-        inMeta = false;
         inXMLData = false;
         readBufferPos = 0;
       } else {
@@ -561,18 +559,13 @@ bool read_epub(char fileName[], fileInfo *fileData) {
       }
 
       if (inAttribute) {
-        if (!inXMLData && !inMeta) {
-          if (strncmp(readBuffer, "meta ", 5) == 0) {
-            inMeta = true;
-            readBufferPos = 0;
-          }
-        } else if (inMeta && !inXMLData) {
-          if (key == ' ' || key == '\"') {
+        if (!inXMLData) {
+          if (key == ' ' || key == '>') {
             readBuffer[readBufferPos-1] = '\0';
-            if (strncmp(readBuffer, "dcterms:", 8) == 0) {
+            if (strncmp(readBuffer, "dc:", 3) == 0) {
               nextIsMeta = true;
-              char metaType[strlen(&readBuffer[8]) + 1];
-              strcpy(metaType, &readBuffer[8]);
+              char metaType[strlen(&readBuffer[3]) + 1];
+              strcpy(metaType, &readBuffer[3]);
 
               //printf("Meta: %s\n", metaType);
 
