@@ -190,8 +190,8 @@ I try to make things happen, if possible.
 ## Known issues
 
 ##### General
-* If you upgrade from a previous version and there are any sql errors while saving the launcher applications, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications) - this is a one time action, but youve got to reimport your ebooks after this step
-* In some cases the dialog for "import files and folders", "edit ebook details" and "set launcher applciations" are **opened but behind the main window**. Please note that when those dialogs are open, and the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs, please report it if you see this happening on any distro mentioned
+* If you upgrade from a previous version and there are any sql errors while saving the launcher applications or importing files, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications and read out ebook information table) - this is a one time action, but youve got to reimport your ebooks and reenter the launcher applications after this step
+* In some cases the dialog for "import files and folders", "edit ebook details" and "set launcher applciations" are **opened but behind the main window**. Please note that when those dialogs are open, and the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs, please report it if you see this happening on any distro
 * found another issue? (please report it or email me)
 
 ##### Ubuntu 16.10
@@ -201,6 +201,7 @@ Using the "kisslib" binary version:
 * The main menu is shown, but not accessible - the only work around, right now, is to use the keyboard shortcuts instead of the menus, "Ctrl-S" (Open a ebook), "Ctrl-E" (Edit ebook details), "Ctrl-W" (Set launcher dialog), "Ctrl-A" (Add files or folders dialog)
 * The open icon is not available, so the launch column is empty, but can be fully used to open an ebook when double clicking on it
 * The sorting for the format does not work correctly, the author and title so can be sorted... the only way to get it right working is to compile the non-jessie version yourself
+* The default GTK icons are not visible in the search bar and cannot be used as shortcuts
 * found another issue? (please report it or email me)
 
 
