@@ -19,7 +19,6 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
   }
 
   //----------------------------------------------------------------------------
-  char currentChar = '\0';
   char nextChar = '\0';
   bool doRecord = false;
 
