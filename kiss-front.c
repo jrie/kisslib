@@ -54,6 +54,7 @@ gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
 
+void delete_selected_entry_from_db_and_store(GtkWidget*);
 void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
 void handle_sort_column(GtkTreeViewColumn*, gpointer);
 
@@ -177,15 +178,17 @@ int fill_db_answer(void* dbAnswerData, int argc, char **argv, char **columnNames
   dbAnswer *answerData = (dbAnswer*) dbAnswerData;
 
   for (int i = 0; i < argc; ++i) {
-    answerData->data = (char**) realloc(answerData->data, sizeof(char*) * (answerData->count + 1));
-    answerData->data[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
-    strcpy(answerData->data[i], argv[i]);
+    if (argv[i] != NULL) {
+      answerData->data = (char**) realloc(answerData->data, sizeof(char*) * (answerData->count + 1));
+      answerData->data[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
+      strcpy(answerData->data[i], argv[i]);
 
-    answerData->columnNames = (char**) realloc(answerData->columnNames, sizeof(char*) * (answerData->count + 1));
-    answerData->columnNames[i] = malloc(sizeof(char) * (strlen(argv[i]) + 1));
-    strcpy(answerData->columnNames[i], columnNames[i]);
+      answerData->columnNames = (char**) realloc(answerData->columnNames, sizeof(char*) * (answerData->count + 1));
+      answerData->columnNames[i] = malloc(sizeof(char) * (strlen(columnNames[i]) + 1));
+      strcpy(answerData->columnNames[i], columnNames[i]);
 
-    ++answerData->count;
+      ++answerData->count;
+    }
   }
 
   return 0;
@@ -590,7 +593,7 @@ void open_launcher_window(GObject* menuitem) {
   char **pointerArgs = NULL;
 
   for (int i = 1; i < 5; ++i) {
-    char getHandlerStmt[67];
+    char getHandlerStmt[73];
     sprintf(getHandlerStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
 
     rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
@@ -992,14 +995,15 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *treeView = g_object_get_data(G_OBJECT(dataItem), "treeview");
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeView));
   GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeView));
-  GtkTreeIter iter;
-  gchar *formatStr;
-  gchar *authorStr;
-  gchar *titleStr;
 
   if (gtk_tree_selection_count_selected_rows(selection) == 0) {
     return;
   }
+
+  GtkTreeIter iter;
+  gchar *formatStr;
+  gchar *authorStr;
+  gchar *titleStr;
 
   GtkWidget *editWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(editWindow), true);
@@ -1119,7 +1123,7 @@ void open_edit_window(GObject *dataItem) {
   char *dbErrorMsg = NULL;
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-  char dbStmt[84 + strlen(authorStr) + strlen(titleStr)];
+  char dbStmt[83 + strlen(authorStr) + strlen(titleStr)];
   sprintf(dbStmt, "SELECT * FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
 
   rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
@@ -1127,12 +1131,14 @@ void open_edit_window(GObject *dataItem) {
     printf("SQL error during select: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
-    get_db_answer_value(&receiveFromDb, "path", &filePath);
-    get_db_answer_value(&receiveFromDb, "filename", &fileName);
-    get_db_answer_value(&receiveFromDb, "format", &fileFormat);
-    get_db_answer_value(&receiveFromDb, "author", &fileAuthor);
-    get_db_answer_value(&receiveFromDb, "title", &fileTitle);
-    free_db_answer(&receiveFromDb);
+    if (receiveFromDb.count != 0) {
+      get_db_answer_value(&receiveFromDb, "path", &filePath);
+      get_db_answer_value(&receiveFromDb, "filename", &fileName);
+      get_db_answer_value(&receiveFromDb, "format", &fileFormat);
+      get_db_answer_value(&receiveFromDb, "author", &fileAuthor);
+      get_db_answer_value(&receiveFromDb, "title", &fileTitle);
+      free_db_answer(&receiveFromDb);
+    }
 
     char fileType[5];
     if (fileFormat != NULL) {
@@ -1623,7 +1629,7 @@ void handle_launchCommand(GtkWidget* widget) {
   char *args = NULL;
 
   //----------------------------------------------------------------------------
-  char dbGetPathStmt[92 + strlen(authorStr) + strlen(titleStr)];
+  char dbGetPathStmt[85 + strlen(authorStr) + strlen(titleStr)];
   sprintf(dbGetPathStmt, "SELECT path FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
 
   g_free(formatStr);
@@ -1800,52 +1806,62 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
   }
 
   if (pressedDelete) {
-    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
-    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
-    GtkTreeIter iter;
-
-    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-      GtkListStore *dataStore = g_object_get_data(G_OBJECT(widget), "dataStore");
-      gchar *formatStr;
-      gchar *authorStr;
-      gchar *titleStr;
-
-      gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
-
-      int format = 0;
-      if (strcmp(formatStr, "pdf") == 0) {
-        format = 1;
-      } else if (strcmp(formatStr, "epub") == 0) {
-        format = 2;
-      } else if (strcmp(formatStr, "mobi") == 0) {
-        format = 3;
-      } else if (strcmp(formatStr, "chm") == 0) {
-        format = 4;
-      } else {
-        return false;
-      }
-
-      char *dbErrorMsg = 0;
-
-      sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
-      char stmt[90+strlen(authorStr)+strlen(titleStr)];
-      sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
-      int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
-
-      if (rc != SQLITE_OK) {
-        printf("SQL error while deleting: %s\n", dbErrorMsg);
-        sqlite3_free(dbErrorMsg);
-      } else {
-        gtk_list_store_remove(dataStore, &iter);
-      }
-
-      g_free(formatStr);
-      g_free(authorStr);
-      g_free(titleStr);
-    }
+    delete_selected_entry_from_db_and_store(widget);
   }
 
   return true;
+}
+
+
+//------------------------------------------------------------------------------
+void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+  GtkTreeIter iter;
+
+  if (gtk_tree_selection_count_selected_rows(selection) == 0) {
+    return;
+  }
+
+  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+    GtkListStore *dataStore = g_object_get_data(G_OBJECT(widget), "dataStore");
+    gchar *formatStr;
+    gchar *authorStr;
+    gchar *titleStr;
+
+    gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+
+    int format = 0;
+    if (strcmp(formatStr, "pdf") == 0) {
+      format = 1;
+    } else if (strcmp(formatStr, "epub") == 0) {
+      format = 2;
+    } else if (strcmp(formatStr, "mobi") == 0) {
+      format = 3;
+    } else if (strcmp(formatStr, "chm") == 0) {
+      format = 4;
+    } else {
+      return;
+    }
+
+    char *dbErrorMsg = 0;
+
+    sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
+    char stmt[90+strlen(authorStr)+strlen(titleStr)];
+    sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
+    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      printf("SQL error while deleting: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      gtk_list_store_remove(dataStore, &iter);
+    }
+
+    g_free(formatStr);
+    g_free(authorStr);
+    g_free(titleStr);
+  }
 }
 
 
