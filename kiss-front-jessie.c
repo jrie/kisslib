@@ -114,14 +114,21 @@ int main (int argc, char *argv[]) {
         'author' TEXT, \
         'title' TEXT, \
         'path' TEXT, \
-        'filename' TEXT \
+        'filename' TEXT, \
+        'tags' TEXT DEFAULT NULL \
       ); \
       CREATE TABLE IF NOT EXISTS launcher_applications ( \
         'id' INTEGER PRIMARY KEY ASC, \
         'format' INTEGER, \
         'program' TEXT DEFAULT NULL, \
         'args' TEXT DEFAULT NULL \
+      ); \
+      CREATE TABLE IF NOT EXISTS options ( \
+        'id' INTEGER PRIMARY KEY ASC, \
+        'option' TEXT, \
+        'value' TEXT \
       )", NULL, NULL, &dbErrorMsg);
+
     if (rc != SQLITE_OK) {
       printf("SQL error: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
@@ -1416,6 +1423,9 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
+  contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
+  gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+
 
   for (unsigned int i = 0; (item = g_slist_nth(filenames, i)) != NULL; ++i) {
     char *fileType = strrchr(item->data, '.');
@@ -1477,6 +1487,9 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
   contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
+  gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+
+  contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
   //gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
@@ -1635,6 +1648,21 @@ void handle_launchCommand(GtkWidget* widget) {
 
 
     if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
+      GtkWidget *statusBar = g_object_get_data(G_OBJECT(widget), "status");
+      guint contextId;
+
+      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
+      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+
+      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
+      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+
+      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
+      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+
+      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
+      gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Please set a laucher application first to open a file.");
+
       free(filePath);
       free_db_answer(&receiveFromDb);
       return;
