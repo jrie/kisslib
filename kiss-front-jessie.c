@@ -115,6 +115,8 @@ int main (int argc, char *argv[]) {
         'title' TEXT, \
         'path' TEXT, \
         'filename' TEXT, \
+        'read' INTEGER DEFAULT 0, \
+        'category' TEXT DEFAULT NULL, \
         'tags' TEXT DEFAULT NULL \
       ); \
       CREATE TABLE IF NOT EXISTS launcher_applications ( \
@@ -126,6 +128,7 @@ int main (int argc, char *argv[]) {
       CREATE TABLE IF NOT EXISTS options ( \
         'id' INTEGER PRIMARY KEY ASC, \
         'option' TEXT, \
+        'type' TEXT, \
         'value' TEXT \
       )", NULL, NULL, &dbErrorMsg);
 
@@ -2207,11 +2210,10 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
     int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
                        + (author == NULL ? 7 : strlen(author))
-                       + strlen(cleanedPath) + strlen(cleanedFileName) + 13;
+                       + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
 
-    char *dbStm = (char*) calloc((58 + additionSize), sizeof(char));
-
-    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",NULL);",
+    char *dbStm = (char*) calloc((70 + additionSize), sizeof(char));
+    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",0,NULL,NULL)",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
