@@ -204,7 +204,7 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 int check_known_pdf_meta(char attributeBuffer[]) {
   if (strncmp(attributeBuffer, "Title(", 6) == 0) {
     //printf("%s\n", attributeBuffer);
-    return true;
+    return 1;
   } else if (strncmp(attributeBuffer, "Author(", 7) == 0) {
     //printf("%s\n", attributeBuffer);
     return 2;
@@ -380,7 +380,6 @@ bool read_chm(char fileName[], fileInfo *fileData) {
   }
 
   readBuffer[readBufferPos] = '\0';
-  //printf("%s\n", readBuffer);
 
   char title[readBufferPos+8];
   sprintf(title, "Title(%s)", readBuffer);
