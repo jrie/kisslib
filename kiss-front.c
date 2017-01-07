@@ -2406,7 +2406,8 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (rc == SQLITE_FULL) {
         fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
       } else {
-        fprintf(stderr, "Unknown SQL error: %s\n", dbErrorMsg);
+        fprintf(stderr, "Unknown SQL error while inserting ebooks: %s\n", dbErrorMsg);
+        fprintf(stderr, "dbStmt: %s\n", dbStm);
       }
 
       sqlite3_free(dbErrorMsg);
