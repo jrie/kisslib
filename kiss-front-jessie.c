@@ -118,6 +118,7 @@ int main (int argc, char *argv[]) {
         'path' TEXT, \
         'filename' TEXT, \
         'read' INTEGER DEFAULT 0, \
+        'priority' INTEGER DEFAULT 0, \
         'category' TEXT DEFAULT NULL, \
         'tags' TEXT DEFAULT NULL \
       ); \
@@ -2236,16 +2237,15 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
                        + (author == NULL ? 7 : strlen(author))
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
 
-    char *dbStm = (char*) calloc((70 + additionSize), sizeof(char));
+    char *dbStm = (char*) calloc((71 + additionSize), sizeof(char));
 
-    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",0,NULL,NULL)",
+    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",0,0,NULL,NULL)",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
       hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
     );
-
 
     int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
