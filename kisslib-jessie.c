@@ -207,7 +207,7 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 int check_known_pdf_meta(char attributeBuffer[]) {
   if (strncmp(attributeBuffer, "Title(", 6) == 0) {
     //printf("%s\n", attributeBuffer);
-    return true;
+    return 1;
   } else if (strncmp(attributeBuffer, "Author(", 7) == 0) {
     //printf("%s\n", attributeBuffer);
     return 2;
@@ -329,7 +329,6 @@ bool read_chm(char fileName[], fileInfo *fileData) {
 
   while ((charVal = fgetc(inputFile)) != EOF) {
     currentChar = (char) charVal;
-    currentChar = fgetc(inputFile);
 
     if (!doRecord && currentChar == 'H' && fgetc(inputFile) == 'H' && fgetc(inputFile) == 'A' && fgetc(inputFile) == ' ') {
       doRecord = true;
