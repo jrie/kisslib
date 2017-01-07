@@ -85,6 +85,11 @@ void edit_entry_save_data(GtkButton*, gpointer);
 
 void menuhandle_meToggleColumn(GtkCheckMenuItem*, gpointer);
 
+void menuhandle_mOptions(GtkMenuItem*, gpointer);
+void open_options_window(GObject*, gpointer);
+void options_toggle_column(GtkToggleButton*, gpointer);
+void optionsWindow_close(GtkButton*, gpointer);
+void optionsWindow_save(GtkButton*, gpointer);
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
 
@@ -139,7 +144,9 @@ int main (int argc, char *argv[]) {
         'option' TEXT, \
         'type' TEXT, \
         'value' TEXT \
-      )", NULL, NULL, &dbErrorMsg);
+      ); \
+      INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', '') \
+      ", NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
@@ -340,8 +347,8 @@ void run(GtkApplication *app, gpointer user_data) {
     G_TYPE_STRING,
     G_TYPE_STRING,
     G_TYPE_STRING,
-    G_TYPE_INT,
     G_TYPE_STRING,
+    G_TYPE_INT,
     G_TYPE_BOOLEAN
   );
 
@@ -451,7 +458,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(ebookList), "drag_data_received", G_CALLBACK(handle_drag_data), NULL);
   g_object_set_data(G_OBJECT(ebookList), "app", app);
   g_object_set_data(G_OBJECT(ebookList), "appWindow", window);
-  g_object_set_data(G_OBJECT(ebookList), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_object_set_data(G_OBJECT(ebookList), "db", db);
   g_object_set_data(G_OBJECT(ebookList), "dataStore", dataStore);
   g_object_set_data(G_OBJECT(ebookList), "status", statusBar);
   g_object_set_data(G_OBJECT(ebookList), "progress", progressBar);
@@ -568,12 +575,6 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
 
-  gtk_tree_view_column_set_visible(columnCategory, false);
-  gtk_tree_view_column_set_visible(columnTags, false);
-  gtk_tree_view_column_set_visible(columnPriority, false);
-  gtk_tree_view_column_set_visible(columnFilename, false);
-  gtk_tree_view_column_set_visible(columnRead, false);
-
 
   //----------------------------------------------------------------------------
 
@@ -628,12 +629,12 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOp);
 
   g_object_set_data(G_OBJECT(meSetLauncher), "appWindow", window);
-  g_object_set_data(G_OBJECT(meSetLauncher), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_object_set_data(G_OBJECT(meSetLauncher), "db", db);
   g_signal_connect(G_OBJECT(meSetLauncher), "activate", G_CALLBACK(menuhandle_meSetLauncher), NULL);
 
   g_object_set_data(G_OBJECT(meEditEntry), "appWindow", window);
   g_object_set_data(G_OBJECT(meEditEntry), "treeview", ebookList);
-  g_object_set_data(G_OBJECT(meEditEntry), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_object_set_data(G_OBJECT(meEditEntry), "db", db);
   g_signal_connect(G_OBJECT(meEditEntry), "activate", G_CALLBACK(menuhandle_meEditEntry), NULL);
 
   g_object_set_data(G_OBJECT(meImportFiles), "appWindow", window);
@@ -641,7 +642,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(meImportFiles), "progressRevealer", progressRevealer);
   g_object_set_data(G_OBJECT(meImportFiles), "progressBar", progressBar);
   g_object_set_data(G_OBJECT(meImportFiles), "treeview", ebookList);
-  g_object_set_data(G_OBJECT(meImportFiles), "db", g_object_get_data(G_OBJECT(app), "db"));
+  g_object_set_data(G_OBJECT(meImportFiles), "db", db);
   g_signal_connect(G_OBJECT(meImportFiles), "activate", G_CALLBACK(menuhandle_meImportFiles), NULL);
 
   g_object_set_data(G_OBJECT(window), "menuSetLauncher", GTK_MENU_ITEM(meSetLauncher));
@@ -671,6 +672,14 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowRead);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mView);
 
+  g_object_set_data(G_OBJECT(meShowFormat), "db", db);
+  g_object_set_data(G_OBJECT(meShowAuthor), "db", db);
+  g_object_set_data(G_OBJECT(meShowCategory), "db", db);
+  g_object_set_data(G_OBJECT(meShowTags), "db", db);
+  g_object_set_data(G_OBJECT(meShowFilename), "db", db);
+  g_object_set_data(G_OBJECT(meShowPriority), "db", db);
+  g_object_set_data(G_OBJECT(meShowRead), "db", db);
+
   g_signal_connect(G_OBJECT(meShowFormat), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnFormat);
   g_signal_connect(G_OBJECT(meShowAuthor), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnAuthor);
   g_signal_connect(G_OBJECT(meShowCategory), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnCategory);
@@ -682,25 +691,105 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *mOptions = gtk_menu_item_new_with_label("Options");
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOptions);
 
+  g_object_set_data(G_OBJECT(mOptions), "meShowFormat", meShowFormat);
+  g_object_set_data(G_OBJECT(mOptions), "meShowAuthor", meShowAuthor);
+  g_object_set_data(G_OBJECT(mOptions), "meShowCategory", meShowCategory);
+  g_object_set_data(G_OBJECT(mOptions), "meShowTags", meShowTags);
+  g_object_set_data(G_OBJECT(mOptions), "meShowFilename", meShowFilename);
+  g_object_set_data(G_OBJECT(mOptions), "meShowPriority", meShowPriority);
+  g_object_set_data(G_OBJECT(mOptions), "meShowRead", meShowRead);
+
+  g_signal_connect(G_OBJECT(mOptions), "activate", G_CALLBACK(menuhandle_mOptions), db);
+
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
 
   // Menu code end -------------------------------------------------------------
+
   g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
   //----------------------------------------------------------------------------
+  // Retrieve which columns are shown
 
-  /*sqlite3 *db = g_object_get_data(G_OBJECT(app), "db");
-  int rc = 0;
-  char *dbErrorMsg = NULL;
+  gtk_tree_view_column_set_visible(columnFormat, false);
+  gtk_tree_view_column_set_visible(columnAuthor, false);
+  gtk_tree_view_column_set_visible(columnCategory, false);
+  gtk_tree_view_column_set_visible(columnTags, false);
+  gtk_tree_view_column_set_visible(columnPriority, false);
+  gtk_tree_view_column_set_visible(columnFilename, false);
+  gtk_tree_view_column_set_visible(columnRead, false);
 
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
-  rc = sqlite3_exec(db, "SELECT option, type, value FROM options WHERE option=\"visible_columns\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
-  free_db_answer(&receiveFromDb);*/
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='visible_columns' LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowFormat), true);
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowAuthor), true);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot read out column setting: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    char *visibleColumnsString = NULL;
+
+    char *columnNames[] = {
+      "format",
+      "author",
+      "category",
+      "tags",
+      "filename",
+      "priority",
+      "read"
+    };
+
+    if (get_db_answer_value(&receiveFromDb, "value", &visibleColumnsString)) {
+      char *stringPart = NULL;
+      stringPart = strtok(visibleColumnsString, ",");
+      while (stringPart != NULL) {
+
+        for (int i = 0; i < 7; ++i) {
+          if (strncmp(stringPart, columnNames[i], strlen(columnNames[i])) == 0) {
+            switch (i) {
+              case 0:
+                gtk_tree_view_column_set_visible(columnFormat, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowFormat), true);
+                break;
+              case 1:
+                gtk_tree_view_column_set_visible(columnAuthor, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowAuthor), true);
+                break;
+              case 2:
+                gtk_tree_view_column_set_visible(columnCategory, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowCategory), true);
+                break;
+              case 3:
+                gtk_tree_view_column_set_visible(columnTags, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowTags), true);
+                break;
+              case 4:
+                gtk_tree_view_column_set_visible(columnPriority, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowPriority), true);
+                break;
+              case 5:
+                gtk_tree_view_column_set_visible(columnFilename, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowFilename), true);
+                break;
+              case 6:
+                gtk_tree_view_column_set_visible(columnRead, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowRead), true);
+                break;
+              default:
+                break;
+            }
+            break;
+          }
+        }
+
+        stringPart = strtok(NULL, ",");
+      }
+
+      free(visibleColumnsString);
+    }
+  }
+
+  free_db_answer(&receiveFromDb);
 
   //----------------------------------------------------------------------------
 
@@ -1470,6 +1559,238 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
 //------------------------------------------------------------------------------
 void menuhandle_meToggleColumn(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
   gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(user_data), gtk_check_menu_item_get_active(checkmenuitem));
+}
+
+
+//------------------------------------------------------------------------------
+void menuhandle_mOptions(GtkMenuItem *menuitem, gpointer user_data) {
+  open_options_window(G_OBJECT(menuitem), user_data);
+}
+
+void open_options_window(GObject *menuitem, gpointer user_data) {
+
+  GtkCheckMenuItem *meShowFormat = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowFormat"));
+  GtkCheckMenuItem *meShowAuthor = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowAuthor"));
+  GtkCheckMenuItem *meShowCategory = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowCategory"));
+  GtkCheckMenuItem *meShowTags = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowTags"));
+  GtkCheckMenuItem *meShowFilename = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowFilename"));
+  GtkCheckMenuItem *meShowPriority = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowPriority"));
+  GtkCheckMenuItem *meShowRead = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowRead"));
+
+  GtkWidget *optionsWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_decorated(GTK_WINDOW(optionsWindow), true);
+
+  gtk_window_set_title(GTK_WINDOW(optionsWindow), "KISS Ebook Starter - Options");
+  gtk_window_set_default_size(GTK_WINDOW(optionsWindow), 640, 400);
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  g_object_set(G_OBJECT(box), "margin", 10, NULL);
+  gtk_container_add(GTK_CONTAINER(optionsWindow), box);
+
+  GtkWidget *grid = gtk_grid_new();
+  gtk_container_add(GTK_CONTAINER(box), grid);
+
+  GtkWidget *labelColumns= gtk_label_new("Visible columns:");
+  gtk_widget_set_halign(GTK_WIDGET(labelColumns), GTK_ALIGN_START);
+  g_object_set(G_OBJECT(labelColumns), "margin-top", 0, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), labelColumns, 0, 0, 5, 1);
+
+  GtkWidget *colFormat = gtk_check_button_new_with_label("Format");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colFormat), gtk_check_menu_item_get_active(meShowFormat));
+  g_object_set(G_OBJECT(colFormat), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colFormat, 0, 1, 5, 1);
+
+  GtkWidget *colAuthor = gtk_check_button_new_with_label("Author");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colAuthor), gtk_check_menu_item_get_active(meShowAuthor));
+  g_object_set(G_OBJECT(colAuthor), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colAuthor, 0, 2, 5, 1);
+
+  GtkWidget *colCategory = gtk_check_button_new_with_label("Category");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colCategory), gtk_check_menu_item_get_active(meShowCategory));
+  g_object_set(G_OBJECT(colCategory), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colCategory, 0, 3, 5, 1);
+
+  GtkWidget *colTags = gtk_check_button_new_with_label("Tags");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colTags), gtk_check_menu_item_get_active(meShowTags));
+  g_object_set(G_OBJECT(colTags), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colTags, 0, 4, 5, 1);
+
+  GtkWidget *colFilename = gtk_check_button_new_with_label("Filename");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colFilename), gtk_check_menu_item_get_active(meShowFilename));
+  g_object_set(G_OBJECT(colFilename), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colFilename, 0, 5, 5, 1);
+
+  GtkWidget *colPriority = gtk_check_button_new_with_label("Priority");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colPriority), gtk_check_menu_item_get_active(meShowPriority));
+  g_object_set(G_OBJECT(colPriority), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colPriority, 0, 6, 5, 1);
+
+  GtkWidget *colRead = gtk_check_button_new_with_label("Read status");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colRead), gtk_check_menu_item_get_active(meShowRead));
+  g_object_set(G_OBJECT(colRead), "margin-top", 10, "margin-left", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), colRead, 0, 7, 5, 1);
+
+  // TODO: Add a readout from database for this option
+  /*GtkWidget *importOverwrite = gtk_check_button_new_with_label("Overwrite existing on import");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), false);
+  g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 10, NULL);
+  gtk_grid_attach(GTK_GRID(grid), importOverwrite, 6, 1, 4, 1);*/
+
+  g_signal_connect(G_OBJECT(colFormat), "toggled", G_CALLBACK(options_toggle_column), meShowFormat);
+  g_signal_connect(G_OBJECT(colAuthor), "toggled", G_CALLBACK(options_toggle_column), meShowAuthor);
+  g_signal_connect(G_OBJECT(colCategory), "toggled", G_CALLBACK(options_toggle_column), meShowCategory);
+  g_signal_connect(G_OBJECT(colTags), "toggled", G_CALLBACK(options_toggle_column), meShowTags);
+  g_signal_connect(G_OBJECT(colFilename), "toggled", G_CALLBACK(options_toggle_column), meShowFilename);
+  g_signal_connect(G_OBJECT(colPriority), "toggled", G_CALLBACK(options_toggle_column), meShowPriority);
+  g_signal_connect(G_OBJECT(colRead), "toggled", G_CALLBACK(options_toggle_column), meShowRead);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonBox), "margin", 0, "margin-top", 24, NULL);
+  gtk_container_add(GTK_CONTAINER(box), buttonBox);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
+
+  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
+  g_object_set_data(G_OBJECT(cancelButton), "rootWindow", optionsWindow);
+  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(optionsWindow_close), NULL);
+
+  GtkWidget *saveButton = gtk_button_new_with_label("Save");
+  gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
+  g_object_set_data(G_OBJECT(saveButton), "rootWindow", optionsWindow);
+  g_object_set_data(G_OBJECT(saveButton), "meShowFormat", meShowFormat);
+  g_object_set_data(G_OBJECT(saveButton), "meShowAuthor", meShowAuthor);
+  g_object_set_data(G_OBJECT(saveButton), "meShowCategory", meShowCategory);
+  g_object_set_data(G_OBJECT(saveButton), "meShowTags", meShowTags);
+  g_object_set_data(G_OBJECT(saveButton), "meShowFilename", meShowFilename);
+  g_object_set_data(G_OBJECT(saveButton), "meShowPriority", meShowPriority);
+  g_object_set_data(G_OBJECT(saveButton), "meShowRead", meShowRead);
+  //g_object_set_data(G_OBJECT(saveButton), "meImportOverwrite", meImportOverwrite);
+  g_object_set_data(G_OBJECT(saveButton), "db", user_data);
+
+  g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(optionsWindow_save), NULL);
+
+
+  //----------------------------------------------------------------------------
+  //gtk_window_set_keep_above(GTK_WINDOW(optionsWindow), true);
+  gtk_window_set_type_hint(GTK_WINDOW(optionsWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
+  gtk_window_activate_focus(GTK_WINDOW(optionsWindow));
+  gtk_widget_show_all(optionsWindow);
+
+  //gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(optionsWindow), true);
+  gtk_window_set_modal(GTK_WINDOW(optionsWindow), true);
+  gtk_window_set_position(GTK_WINDOW(optionsWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+}
+
+
+//------------------------------------------------------------------------------
+void optionsWindow_close(GtkButton *button, gpointer user_data) {
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+}
+
+void optionsWindow_save(GtkButton *button, gpointer user_data) {
+  GtkCheckMenuItem *meShowFormat = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowFormat"));
+  GtkCheckMenuItem *meShowAuthor = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowAuthor"));
+  GtkCheckMenuItem *meShowCategory = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowCategory"));
+  GtkCheckMenuItem *meShowTags = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowTags"));
+  GtkCheckMenuItem *meShowFilename = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowFilename"));
+  GtkCheckMenuItem *meShowPriority = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowPriority"));
+  GtkCheckMenuItem *meShowRead = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowRead"));
+
+  //TODO: Add saving for import overwrite option
+  //GtkCheckMenuItem *meImportOverwrite = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meImportOverwrite"));
+
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+
+  // Create the column selection string
+
+  char *visibleColumnsStm = (char*) calloc(1, sizeof(char));
+  int addedColumns = 0;
+  int size = 1;
+
+  char *columnName = calloc(256, sizeof(char));
+  GtkCheckMenuItem **activeColumn = NULL;
+
+  for (int i = 0; i < 7; ++i) {
+    switch(i) {
+      case 0:
+        activeColumn = &meShowFormat;
+        sprintf(columnName, "format");
+        break;
+      case 1:
+        activeColumn = &meShowAuthor;
+        sprintf(columnName, "author");
+        break;
+      case 2:
+        activeColumn = &meShowCategory;
+        sprintf(columnName, "category");
+        break;
+      case 3:
+        activeColumn = &meShowTags;
+        sprintf(columnName, "tags");
+        break;
+      case 4:
+        activeColumn = &meShowFilename;
+        sprintf(columnName, "filename");
+        break;
+      case 5:
+        activeColumn = &meShowPriority;
+        sprintf(columnName, "priority");
+        break;
+      case 6:
+        activeColumn = &meShowRead;
+        sprintf(columnName, "read");
+        break;
+      default:
+        break;
+    }
+
+    if (activeColumn != NULL) {
+      if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(*activeColumn))) {
+        size += strlen(columnName);
+
+        if (addedColumns != 0) {
+          size += 1;
+          visibleColumnsStm = (char*) realloc(visibleColumnsStm, size);
+          strcat(visibleColumnsStm, ",");
+        } else {
+          visibleColumnsStm = (char*) realloc(visibleColumnsStm, size);
+        }
+
+        strcat(visibleColumnsStm, columnName);
+
+        ++addedColumns;
+      }
+
+      activeColumn = NULL;
+    }
+  }
+
+  char dbStm[69 + strlen(visibleColumnsStm)];
+  sprintf(dbStm, "UPDATE options SET value='%s' WHERE option=\"visible_columns\" LIMIT 0,1", visibleColumnsStm);
+  char *dbErrorMsg = NULL;
+  int rc = 0;
+
+  rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error during save of column options: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  free(visibleColumnsStm);
+  free(columnName);
+
+  if (rc == SQLITE_OK) {
+    gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  }
+}
+
+
+void options_toggle_column(GtkToggleButton *toggleButton, gpointer user_data) {
+  GtkCheckMenuItem *menuItem = GTK_CHECK_MENU_ITEM(user_data);
+  gtk_check_menu_item_set_active(menuItem, gtk_toggle_button_get_active(toggleButton));
 }
 
 
@@ -2408,7 +2729,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       if (rc == SQLITE_FULL) {
         fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
       } else {
-        fprintf(stderr, "Unknown SQL error while inserting ebook: %s\n", dbErrorMsg);
+        fprintf(stderr, "Unknown SQL error while inserting ebooks: %s\n", dbErrorMsg);
         fprintf(stderr, "dbStmt: %s\n", dbStm);
       }
 
