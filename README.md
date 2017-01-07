@@ -201,8 +201,7 @@ Using the "kisslib" binary version:
 
 * The main menu is shown, but not accessible - the only work around, right now, is to use the keyboard shortcuts instead of the menus, "Ctrl-S" (Open a ebook), "Ctrl-E" (Edit ebook details), "Ctrl-W" (Set launcher dialog), "Ctrl-A" (Add files or folders dialog)
 * The open icon is not available, so the launch column is empty, but can be fully used to open an ebook when double clicking on it
-* The sorting for the format does not work correctly, the author and title so can be sorted... the only way to get it right working is to compile the non-jessie version yourself
-* The default GTK icons are not visible in the search bar and cannot be used as shortcuts
+* The default GTK icons are not visible in the search bar and cannot be used as shortcuts, the search works fine so
 * found another issue? (please report it or email me)
 
 
