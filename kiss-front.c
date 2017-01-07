@@ -23,6 +23,11 @@ enum {
   FORMAT_COLUMN,
   AUTHOR_COLUMN,
   TITLE_COLUMN,
+  CATEGORY_COLUMN,
+  TAGS_COLUMN,
+  FILENAME_COLUMN,
+  PRIORITY_COLUMN,
+  READ_COLUMN,
   N_COLUMNS
 };
 
@@ -75,12 +80,13 @@ void open_launcher_window(GObject*);
 
 void menuhandle_meEditEntry(GtkMenuItem*, gpointer);
 void open_edit_window(GObject*);
+void edit_entry_close(GtkButton*, gpointer);
+void edit_entry_save_data(GtkButton*, gpointer);
+
+void menuhandle_meToggleColumn(GtkCheckMenuItem*, gpointer);
 
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
-
-void edit_entry_close(GtkButton*, gpointer);
-void edit_entry_save_data(GtkButton*, gpointer);
 
 void fileChooser_close(GtkButton*, gpointer);
 void fileChooser_importFiles(GtkButton*, gpointer);
@@ -241,6 +247,11 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
   char formatString[5];
   char *author = NULL;
   char *title = NULL;
+  char *category = NULL;
+  char *tags = NULL;
+  char *filename = NULL;
+  bool read = false;
+  int priority = 0;
 
   for(int i = 0; i < argc; i++) {
     if (strcmp(columnNames[i], "format") == 0) {
@@ -263,10 +274,26 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     } else if (strcmp(columnNames[i], "author") == 0) {
       author = calloc((strlen(argv[i]) + 1), sizeof(char));
       strcpy(author, argv[i]);
-
     } else if (strcmp(columnNames[i], "title") == 0) {
       title = calloc((strlen(argv[i]) + 1), sizeof(char));
       strcpy(title, argv[i]);
+    } else if (strcmp(columnNames[i], "category") == 0) {
+      if (argv[i] != NULL) {
+        category = calloc((strlen(argv[i]) + 1), sizeof(char));
+        strcpy(category, argv[i]);
+      }
+    } else if (strcmp(columnNames[i], "tags") == 0) {
+      if (argv[i] != NULL) {
+        tags = calloc((strlen(argv[i]) + 1), sizeof(char));
+        strcpy(tags, argv[i]);
+      }
+    } else if (strcmp(columnNames[i], "filename") == 0) {
+      filename = calloc((strlen(argv[i]) + 1), sizeof(char));
+      strcpy(filename, argv[i]);
+    } else if (strcmp(columnNames[i], "priority") == 0) {
+      priority = atoi(argv[i]);
+    } else if (strcmp(columnNames[i], "read") == 0) {
+      read = atoi(argv[i]);
     }
   }
 
@@ -275,11 +302,19 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     FORMAT_COLUMN, formatString,
     AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
     TITLE_COLUMN, title,
+    CATEGORY_COLUMN, category == NULL ? "" : category,
+    TAGS_COLUMN, tags == NULL ? "" : tags,
+    FILENAME_COLUMN, filename,
+    PRIORITY_COLUMN, priority,
+    READ_COLUMN, read,
     -1
   );
 
   free(author);
   free(title);
+  free(category);
+  free(tags);
+  free(filename);
 
   return 0;
 }
@@ -302,7 +337,12 @@ void run(GtkApplication *app, gpointer user_data) {
     GDK_TYPE_PIXBUF,
     G_TYPE_STRING,
     G_TYPE_STRING,
-    G_TYPE_STRING
+    G_TYPE_STRING,
+    G_TYPE_STRING,
+    G_TYPE_STRING,
+    G_TYPE_INT,
+    G_TYPE_STRING,
+    G_TYPE_BOOLEAN
   );
 
   /*
@@ -349,8 +389,7 @@ void run(GtkApplication *app, gpointer user_data) {
   sqlite3* db = g_object_get_data(G_OBJECT(app), "db");
 
   char *dbErrorMsg = NULL;
-
-  int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "SELECT format, author, title, category, tags, priority, filename, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
@@ -479,17 +518,83 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkTreeViewColumn *columnTitle = gtk_tree_view_column_new_with_attributes("Title", ebookListTitle, "text", TITLE_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTitle, 240);
+  gtk_tree_view_column_set_expand(columnTitle, true);
   gtk_tree_view_column_set_resizable(columnTitle, true);
   gtk_cell_renderer_set_padding(ebookListTitle, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTitle);
+
+
+  //----------------------------------------------------------------------------
+
+  GtkCellRenderer *ebookListCategory = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(ebookListCategory), "editable", true, NULL);
+  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
+
+  GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnTitle, 100);
+  gtk_tree_view_column_set_resizable(columnTitle, true);
+  gtk_cell_renderer_set_padding(ebookListCategory, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnCategory);
+
+  GtkCellRenderer *ebookListTags = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(ebookListTags), "editable", true, NULL);
+  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
+  GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes("Tags", ebookListTags, "text", TAGS_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnTags, 100);
+  gtk_tree_view_column_set_resizable(columnTags, true);
+  gtk_cell_renderer_set_padding(ebookListTags, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTags);
+
+  GtkCellRenderer *ebookListFilename = gtk_cell_renderer_text_new();
+  GtkTreeViewColumn *columnFilename = gtk_tree_view_column_new_with_attributes("Filename", ebookListFilename, "text", FILENAME_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnFilename, 160);
+  gtk_tree_view_column_set_resizable(columnFilename, true);
+  gtk_cell_renderer_set_padding(ebookListFilename, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnFilename);
+
+  GtkCellRenderer *ebookListPriority = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(ebookListPriority), "editable", true, NULL);
+  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
+  GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnPriority, 60);
+  gtk_tree_view_column_set_fixed_width(columnPriority, 60);
+  gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
+
+  GtkCellRenderer *ebookListRead = gtk_cell_renderer_toggle_new();
+  GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
+  gtk_tree_view_column_set_min_width(columnRead, 60);
+  gtk_tree_view_column_set_fixed_width(columnRead, 60);
+  gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
+
+  gtk_tree_view_column_set_visible(columnCategory, false);
+  gtk_tree_view_column_set_visible(columnTags, false);
+  gtk_tree_view_column_set_visible(columnPriority, false);
+  gtk_tree_view_column_set_visible(columnFilename, false);
+  gtk_tree_view_column_set_visible(columnRead, false);
+
+
+  //----------------------------------------------------------------------------
+
 
   // Sorting of columns
   gtk_tree_view_column_set_clickable(columnFormat, true);
   gtk_tree_view_column_set_clickable(columnAuthor, true);
   gtk_tree_view_column_set_clickable(columnTitle, true);
+  gtk_tree_view_column_set_clickable(columnCategory, true);
+  gtk_tree_view_column_set_clickable(columnTags, true);
+  gtk_tree_view_column_set_clickable(columnFilename, true);
+  gtk_tree_view_column_set_clickable(columnPriority, true);
+  gtk_tree_view_column_set_clickable(columnRead, true);
   g_signal_connect(G_OBJECT(columnFormat), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnAuthor), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnTitle), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnCategory), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnTags), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnFilename), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnPriority), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+  g_signal_connect(G_OBJECT(columnRead), "clicked", G_CALLBACK(handle_sort_column), ebookList);
 
   // The main menu -------------------------------------------------------------
   // TODO: Should the main menu use images?
@@ -542,12 +647,62 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(window), "menuSetLauncher", GTK_MENU_ITEM(meSetLauncher));
   g_object_set_data(G_OBJECT(window), "menuImportFiles", GTK_MENU_ITEM(meImportFiles));
 
+  GtkWidget *viewMenu = gtk_menu_new();
+  GtkWidget *mView = gtk_menu_item_new_with_label("View");
+  GtkWidget *viewColumns = gtk_menu_new();
+  GtkWidget *meSubColumns = gtk_menu_item_new_with_label("Show or hide columns...");
+  GtkWidget *meShowFormat = gtk_check_menu_item_new_with_label("Format");
+  GtkWidget *meShowAuthor = gtk_check_menu_item_new_with_label("Author");
+  GtkWidget *meShowCategory = gtk_check_menu_item_new_with_label("Category");
+  GtkWidget *meShowTags = gtk_check_menu_item_new_with_label("Tags");
+  GtkWidget *meShowFilename = gtk_check_menu_item_new_with_label("Filename");
+  GtkWidget *meShowPriority = gtk_check_menu_item_new_with_label("Priority");
+  GtkWidget *meShowRead = gtk_check_menu_item_new_with_label("Read state");
+
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(mView), viewMenu);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), meSubColumns);
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(meSubColumns), viewColumns);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowFormat);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowAuthor);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowCategory);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowTags);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowFilename);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowPriority);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowRead);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), mView);
+
+  g_signal_connect(G_OBJECT(meShowFormat), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnFormat);
+  g_signal_connect(G_OBJECT(meShowAuthor), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnAuthor);
+  g_signal_connect(G_OBJECT(meShowCategory), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnCategory);
+  g_signal_connect(G_OBJECT(meShowFilename), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnFilename);
+  g_signal_connect(G_OBJECT(meShowPriority), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnPriority);
+  g_signal_connect(G_OBJECT(meShowTags), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnTags);
+  g_signal_connect(G_OBJECT(meShowRead), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnRead);
+
+  GtkWidget *mOptions = gtk_menu_item_new_with_label("Options");
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOptions);
+
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
 
   // Menu code end -------------------------------------------------------------
   g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
+  //----------------------------------------------------------------------------
+
+  /*sqlite3 *db = g_object_get_data(G_OBJECT(app), "db");
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+  rc = sqlite3_exec(db, "SELECT option, type, value FROM options WHERE option=\"visible_columns\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  free_db_answer(&receiveFromDb);*/
+
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowFormat), true);
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowAuthor), true);
+
+  //----------------------------------------------------------------------------
 
   gtk_widget_show_all(window);
 }
@@ -1313,11 +1468,17 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
 }
 
 //------------------------------------------------------------------------------
+void menuhandle_meToggleColumn(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
+  gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(user_data), gtk_check_menu_item_get_active(checkmenuitem));
+}
+
+
+//------------------------------------------------------------------------------
 void menuhandle_meImportFiles(GtkMenuItem *menuitem, gpointer user_data) {
   open_importFiles_window(G_OBJECT(menuitem));
 }
 
-void open_importFiles_window(GObject* menuitem) {
+void open_importFiles_window(GObject *menuitem) {
   GtkWidget *fileChooserWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(fileChooserWindow), true);
 
@@ -1877,7 +2038,7 @@ void search_icon_click(GtkEntry* entry, GtkEntryIconPosition icon_pos, GdkEvent*
 
     gtk_list_store_clear(dataStore);
 
-    rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+    rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
     if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error while restoring ebook list in clear functon: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
@@ -1902,8 +2063,8 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
   gtk_list_store_clear(dataStore);
 
   if (retVal != 0) {
-    char dbStmt[120 + (retVal * 2)];
-    sprintf(dbStmt, "SELECT format, author, title FROM ebook_collection WHERE author LIKE \"%%%s%%\" OR title LIKE \"%%%s%%\" ORDER BY author, title ASC", trimmedText, trimmedText);
+    char dbStmt[152 + (retVal * 2)];
+    sprintf(dbStmt, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection WHERE author LIKE \"%%%s%%\" OR title LIKE \"%%%s%%\" ORDER BY author, title ASC", trimmedText, trimmedText);
 
     rc = sqlite3_exec(db, dbStmt, add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
@@ -1916,7 +2077,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
     }
   }
 
-  rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error while restoring ebook list: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
@@ -1928,17 +2089,12 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
 
 //------------------------------------------------------------------------------
 void handle_sort_column(GtkTreeViewColumn* column, gpointer user_data) {
-  gint offset = gtk_tree_view_column_get_x_offset(column);
-  if (offset >= 40) {
-    gtk_tree_view_column_set_sort_indicator(column, true);
-    if (offset < 125) {
-      gtk_tree_view_column_set_sort_column_id(column, 1);
-    } else if (offset >= 125 && offset <= 150) {
-      gtk_tree_view_column_set_sort_column_id(column, 2);
-    } else {
-      gtk_tree_view_column_set_sort_column_id(column, 3);
-    }
-  }
+  GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+  GList *columns = gtk_tree_view_get_columns(treeview);
+  int index = g_list_index(columns, (gpointer) column);
+  g_list_free(columns);
+
+  gtk_tree_view_column_set_sort_column_id(column, index);
 }
 
 
@@ -2265,6 +2421,11 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
         FORMAT_COLUMN, &lowerFiletype[1],
         AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
         TITLE_COLUMN, title == NULL ? cleanedFileName : title,
+        CATEGORY_COLUMN, "",
+        TAGS_COLUMN, "",
+        FILENAME_COLUMN, cleanedFileName,
+        PRIORITY_COLUMN, 0,
+        READ_COLUMN, false,
         -1
       );
 
