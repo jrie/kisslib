@@ -106,7 +106,7 @@ int main (int argc, char *argv[]) {
 
   if (rc) {
     sqlite3_close(db);
-    printf("Error opening sqlite3 database \"kisslib.db\" file. Exiting.");
+    fprintf(stderr, "Error opening sqlite3 database \"kisslib.db\" file. Exiting.");
     return 1;
   } else {
     rc = sqlite3_exec(db, " \
@@ -135,12 +135,12 @@ int main (int argc, char *argv[]) {
       )", NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
       sqlite3_close(db);
 
       if (rc == SQLITE_READONLY) {
-        printf("Error opening sqlite3 database for writing. Exiting.");
+        fprintf(stderr, "Error opening sqlite3 database for writing. Exiting.");
       }
 
       return 1;
@@ -352,7 +352,7 @@ void run(GtkApplication *app, gpointer user_data) {
   int rc = sqlite3_exec(db, "SELECT format, author, title, path FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
-    printf("SQL error: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   }
 
@@ -440,7 +440,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
 
   if (infoIcon == NULL) {
-    printf("Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
+    fprintf(stderr, "Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
     g_error_free(iconError);
   } else {
     GtkCellRenderer *imageRenderer = gtk_cell_renderer_pixbuf_new();
@@ -599,7 +599,7 @@ void open_launcher_window(GObject* menuitem) {
     rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error during selection: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       switch(i) {
@@ -813,7 +813,7 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
 
   int rc = sqlite3_exec(db, clearLauncherStmt, NULL, NULL, &dbErrorMsg);
   if (rc != SQLITE_OK) {
-    printf("Unknown SQL error while clearing launcher applications:%s\n", dbErrorMsg);
+    fprintf(stderr, "Unknown SQL error while clearing launcher applications:%s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   }
 
@@ -866,9 +866,9 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
       int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
       if (rc != SQLITE_OK) {
         if (rc == SQLITE_FULL) {
-          printf("Cannot add data to the database, the (temporary) disk is full.");
+          fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
         } else {
-          printf("Unknown SQL error: %s\n", dbErrorMsg);
+          fprintf(stderr, "Unknown SQL error: %s\n", dbErrorMsg);
         }
 
         sqlite3_free(dbErrorMsg);
@@ -1128,7 +1128,7 @@ void open_edit_window(GObject *dataItem) {
 
   rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
   if (rc != SQLITE_OK) {
-    printf("SQL error during select: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error during select: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
     if (receiveFromDb.count != 0) {
@@ -1292,7 +1292,7 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
 
   rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
   if (rc != SQLITE_OK) {
-    printf("SQL error during update: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error during update: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
     GtkTreeModel *model = gtk_tree_view_get_model(treeview);
@@ -1638,7 +1638,7 @@ void handle_launchCommand(GtkWidget* widget) {
 
   rc = sqlite3_exec(db, dbGetPathStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
   if (rc != SQLITE_OK) {
-    printf("SQL error during selection: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
     if (!get_db_answer_value(&receiveFromDb, "path", &filePath)) {
@@ -1656,7 +1656,7 @@ void handle_launchCommand(GtkWidget* widget) {
   rc = sqlite3_exec(db, dbGetLauncherStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
-    printf("SQL error during selection: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
     if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
@@ -1852,7 +1852,7 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
     int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error while deleting: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error while deleting: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       gtk_list_store_remove(dataStore, &iter);
@@ -1879,7 +1879,7 @@ void search_icon_click(GtkEntry* entry, GtkEntryIconPosition icon_pos, GdkEvent*
 
     rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
     if (rc != SQLITE_OK) {
-      printf("SQL error while restoring ebook list in clear functon: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error while restoring ebook list in clear functon: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     }
 
@@ -1908,7 +1908,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
     rc = sqlite3_exec(db, dbStmt, add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error while filtering ebook list: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error while filtering ebook list: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       free(trimmedText);
@@ -1918,7 +1918,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
 
   rc = sqlite3_exec(db, "SELECT format, author, title FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
   if (rc != SQLITE_OK) {
-    printf("SQL error while restoring ebook list: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error while restoring ebook list: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   }
 
@@ -1986,7 +1986,7 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
   int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
-    printf("SQL error while updating: %s\n", dbErrorMsg);
+    fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
   } else {
     gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, author, -1);
@@ -2035,7 +2035,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error while updating: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, new_text, -1);
@@ -2047,7 +2047,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     int rc = sqlite3_exec(db, stmt, fill_db_answer, (void*) &dbAnswerData, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      printf("SQL error: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       char *fileName = NULL;
@@ -2057,7 +2057,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
         int rc = sqlite3_exec(db, updateStmt, NULL, NULL, &dbErrorMsg);
 
         if (rc != SQLITE_OK) {
-          printf("SQL error while updating: %s\n", dbErrorMsg);
+          fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
           sqlite3_free(dbErrorMsg);
         } else {
           gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, fileName, -1);
@@ -2197,7 +2197,6 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     }
 
     if (!retVal) {
-      printf("Error reading out file \"%s\"\n", cleanedPath);
       free(cleanedFileName);
       free(cleanedPath);
       return false;
@@ -2249,9 +2248,9 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     if (rc != SQLITE_OK) {
       dbOkay = false;
       if (rc == SQLITE_FULL) {
-        printf("Cannot add data to the database, the (temporary) disk is full.");
+        fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
       } else {
-        printf("Unknown SQL error: %s\n", dbErrorMsg);
+        fprintf(stderr, "Unknown SQL error: %s\n", dbErrorMsg);
       }
 
       sqlite3_free(dbErrorMsg);
