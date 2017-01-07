@@ -1599,6 +1599,11 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
 void handle_launchCommand(GtkWidget* widget) {
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
   GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+
+  if (gtk_tree_selection_count_selected_rows(selection) == 0) {
+    return;
+  }
+
   GtkTreeIter iter;
   gchar *formatStr;
   gchar *authorStr;
@@ -1772,32 +1777,27 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
   GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
 
   switch (event->keyval) {
-    case 65535:
-      // Delete key
+    case GDK_KEY_Delete:
       pressedDelete = true;
       break;
-    case 115:
-      // S key
+    case GDK_KEY_s:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) { // Strg Pressed
         handle_launchCommand(widget);
         return true;
       }
       break;
-    case 101:
-      // E key
+    case GDK_KEY_e:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_edit_window(G_OBJECT(widget));
         return true;
       }
       break;
-    case 119:
-      // W key
+    case GDK_KEY_w:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_launcher_window(G_OBJECT(widget));
       }
       break;
-    case 97:
-      // A key
+    case GDK_KEY_a:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_importFiles_window(G_OBJECT(widget));
       }
