@@ -12,10 +12,8 @@ bool read_pdf(char fileName[], fileInfo *fileData) {
 
   inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
-    printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
+    fprintf(stderr, "Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
-  } else {
-    printf("Start parsing file \"%s\"...\n", fileName);
   }
 
   //----------------------------------------------------------------------------
@@ -266,7 +264,7 @@ bool read_mobi(char fileName[], fileInfo *fileData) {
 
   inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
-    printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
+    fprintf(stderr, "Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
   }
 
@@ -312,7 +310,7 @@ bool read_chm(char fileName[], fileInfo *fileData) {
 
   inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
-    printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
+    fprintf(stderr, "Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
   }
 
@@ -406,7 +404,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
 
   inputFile = fopen(fileName, "rb");
   if (inputFile == NULL) {
-    printf("Error, cannot open input file \"%s\" to read out information.\n", fileName);
+    fprintf(stderr, "Error, cannot open input file \"%s\" to read out information.\n", fileName);
     return false;
   }
 
@@ -419,7 +417,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   zip_t *epubFile = zip_open(fileName, ZIP_RDONLY, &error);
 
   if (epubFile == NULL) {
-    printf("libzip error code \"%d\" - cannot open file \"%s\".\n", error, fileName);
+    fprintf(stderr, "libzip error code \"%d\" - cannot open file \"%s\".\n", error, fileName);
     return false;
   }
 
@@ -428,7 +426,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   if (tocIndex == -1) {
     tocIndex = zip_name_locate(epubFile, "toc.ncx", ZIP_FL_NOCASE|ZIP_FL_NODIR);
     if (tocIndex == -1) {
-      printf("Cannot find information file in epub.\n");
+      fprintf(stderr, "Cannot find information file in epub.\n");
       zip_discard(epubFile);
       return false;
     } else {
@@ -438,7 +436,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
 
   zip_stat_t *tocStat = malloc(sizeof(zip_stat_t));
   if (zip_stat_index(epubFile, tocIndex, ZIP_FL_UNCHANGED, tocStat) == -1) {
-    printf("libzip error, cannot read out %s file stats.\n", useToc ? "toc" : "content");
+    fprintf(stderr, "libzip error, cannot read out %s file stats.\n", useToc ? "toc" : "content");
     zip_discard(epubFile);
     free(tocStat);
 
@@ -448,7 +446,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
 
   zip_file_t *tocFile = zip_fopen_index(epubFile, tocIndex, ZIP_FL_UNCHANGED);
   if (tocFile == NULL) {
-    printf("libzip error, cannot open %s file.\n", useToc ? "toc" : "content");
+    fprintf(stderr, "libzip error, cannot open %s file.\n", useToc ? "toc" : "content");
     zip_discard(epubFile);
     return false;
   }
@@ -458,7 +456,7 @@ bool read_epub(char fileName[], fileInfo *fileData) {
   char data[buffer];
 
   if (buffer != zip_fread(tocFile, data, buffer)) {
-    printf("libzip error, size of data read of %s file estimate mismatch.\n", useToc ? "toc" : "content");
+    fprintf(stderr, "libzip error, size of data read of %s file estimate mismatch.\n", useToc ? "toc" : "content");
     return false;
   }
 
