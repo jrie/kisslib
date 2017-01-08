@@ -66,8 +66,8 @@ void handle_sort_column(GtkTreeViewColumn*, gpointer);
 void search_icon_click(GtkEntry*, GtkEntryIconPosition, GdkEvent*, gpointer);
 void search_handle_search(GtkEntry*, gpointer);
 
-bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*);
-int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*);
+bool read_and_add_file_to_model(char*, bool, GtkWidget*, unsigned int, bool, GtkWidget*, unsigned int, unsigned int, bool, GtkTreeModel*, sqlite3*, bool);
+int read_out_path(char*, GtkWidget*, unsigned int, GtkWidget*, unsigned int, unsigned int, GtkTreeModel*, sqlite3*, bool);
 bool retrieve_handler_arguments(struct argumentStore*, const char *);
 void free_handler_arguments(struct argumentStore*);
 
@@ -90,6 +90,7 @@ void open_options_window(GObject*, gpointer);
 void options_toggle_column(GtkToggleButton*, gpointer);
 void optionsWindow_close(GtkButton*, gpointer);
 void optionsWindow_save(GtkButton*, gpointer);
+
 void launcherWindow_save_data(GtkButton*, gpointer);
 void launcherWindow_close(GtkButton*, gpointer);
 
@@ -99,6 +100,7 @@ void fileChooser_importFiles(GtkButton*, gpointer);
 // Db related
 int trim(const char*, char**, bool);
 int add_db_data_to_store(void*, int, char**, char**);
+void clearAndUpdateDataStore(GtkListStore*, sqlite3*);
 
 int fill_db_answer(void*, int, char**, char**);
 void free_db_answer(struct dbAnswer*);
@@ -145,7 +147,8 @@ int main (int argc, char *argv[]) {
         'type' TEXT, \
         'value' TEXT \
       ); \
-      INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', '') \
+      INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', 'format,author'); \
+      INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
       ", NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -304,6 +307,18 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     }
   }
 
+  gtk_list_store_insert_with_values(store, &iter, -1,
+    FORMAT_COLUMN, formatString,
+    AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
+    TITLE_COLUMN, title,
+    CATEGORY_COLUMN, category == NULL ? "" : category,
+    TAGS_COLUMN, tags == NULL ? "" : tags,
+    FILENAME_COLUMN, filename,
+    PRIORITY_COLUMN, priority,
+    READ_COLUMN, read,
+    -1
+  );
+  /*
   gtk_list_store_append(store, &iter);
   gtk_list_store_set(store, &iter,
     FORMAT_COLUMN, formatString,
@@ -316,6 +331,7 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     READ_COLUMN, read,
     -1
   );
+  */
 
   free(author);
   free(title);
@@ -764,12 +780,12 @@ void run(GtkApplication *app, gpointer user_data) {
                 gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowTags), true);
                 break;
               case 4:
-                gtk_tree_view_column_set_visible(columnPriority, true);
-                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowPriority), true);
-                break;
-              case 5:
                 gtk_tree_view_column_set_visible(columnFilename, true);
                 gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowFilename), true);
+                break;
+              case 5:
+                gtk_tree_view_column_set_visible(columnPriority, true);
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(meShowPriority), true);
                 break;
               case 6:
                 gtk_tree_view_column_set_visible(columnRead, true);
@@ -1569,6 +1585,8 @@ void menuhandle_mOptions(GtkMenuItem *menuitem, gpointer user_data) {
 
 void open_options_window(GObject *menuitem, gpointer user_data) {
 
+  sqlite3 *db = user_data;
+
   GtkCheckMenuItem *meShowFormat = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowFormat"));
   GtkCheckMenuItem *meShowAuthor = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowAuthor"));
   GtkCheckMenuItem *meShowCategory = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(menuitem), "meShowCategory"));
@@ -1581,7 +1599,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   gtk_window_set_decorated(GTK_WINDOW(optionsWindow), true);
 
   gtk_window_set_title(GTK_WINDOW(optionsWindow), "KISS Ebook Starter - Options");
-  gtk_window_set_default_size(GTK_WINDOW(optionsWindow), 640, 400);
+  gtk_window_set_default_size(GTK_WINDOW(optionsWindow), 640, 300);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   g_object_set(G_OBJECT(box), "margin", 10, NULL);
@@ -1631,10 +1649,10 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(grid), colRead, 0, 7, 5, 1);
 
   // TODO: Add a readout from database for this option
-  /*GtkWidget *importOverwrite = gtk_check_button_new_with_label("Overwrite existing on import");
+  GtkWidget *importOverwrite = gtk_check_button_new_with_label("Overwrite existing on import");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), false);
-  g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 10, NULL);
-  gtk_grid_attach(GTK_GRID(grid), importOverwrite, 6, 1, 4, 1);*/
+  g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 150, NULL);
+  gtk_grid_attach(GTK_GRID(grid), importOverwrite, 7, 1, 3, 1);
 
   g_signal_connect(G_OBJECT(colFormat), "toggled", G_CALLBACK(options_toggle_column), meShowFormat);
   g_signal_connect(G_OBJECT(colAuthor), "toggled", G_CALLBACK(options_toggle_column), meShowAuthor);
@@ -1666,11 +1684,32 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   g_object_set_data(G_OBJECT(saveButton), "meShowFilename", meShowFilename);
   g_object_set_data(G_OBJECT(saveButton), "meShowPriority", meShowPriority);
   g_object_set_data(G_OBJECT(saveButton), "meShowRead", meShowRead);
-  //g_object_set_data(G_OBJECT(saveButton), "meImportOverwrite", meImportOverwrite);
+  g_object_set_data(G_OBJECT(saveButton), "importOverwrite", importOverwrite);
   g_object_set_data(G_OBJECT(saveButton), "db", user_data);
 
   g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(optionsWindow_save), NULL);
 
+  //----------------------------------------------------------------------------
+  char *overwriteOnImport = NULL;
+
+  char *dbErrorMsg = NULL;
+  int rc = 0;
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error during option retrieval: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (get_db_answer_value(&receiveFromDb, "value", &overwriteOnImport)) {
+      if (strcmp(overwriteOnImport, "true") == 0) {
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), true);
+      }
+    }
+    free(overwriteOnImport);
+    free_db_answer(&receiveFromDb);
+  }
 
   //----------------------------------------------------------------------------
   //gtk_window_set_keep_above(GTK_WINDOW(optionsWindow), true);
@@ -1698,9 +1737,7 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
   GtkCheckMenuItem *meShowFilename = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowFilename"));
   GtkCheckMenuItem *meShowPriority = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowPriority"));
   GtkCheckMenuItem *meShowRead = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowRead"));
-
-  //TODO: Add saving for import overwrite option
-  //GtkCheckMenuItem *meImportOverwrite = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meImportOverwrite"));
+  GtkToggleButton *importOverwrite = GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(button), "importOverwrite"));
 
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
 
@@ -1768,12 +1805,12 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
     }
   }
 
-  char dbStm[69 + strlen(visibleColumnsStm)];
-  sprintf(dbStm, "UPDATE options SET value='%s' WHERE option=\"visible_columns\" LIMIT 0,1", visibleColumnsStm);
+  char dbColumnStm[69 + strlen(visibleColumnsStm)];
+  sprintf(dbColumnStm, "UPDATE options SET value='%s' WHERE option=\"visible_columns\" LIMIT 0,1", visibleColumnsStm);
   char *dbErrorMsg = NULL;
   int rc = 0;
 
-  rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
+  rc = sqlite3_exec(db, dbColumnStm, NULL, NULL, &dbErrorMsg);
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error during save of column options: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
@@ -1782,6 +1819,23 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
   free(visibleColumnsStm);
   free(columnName);
 
+  //----------------------------------------------------------------------------
+
+  char overwriteStatus[6];
+  sprintf(overwriteStatus, "%s", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false") );
+
+  char dbOverwriteStm[73 + strlen(overwriteStatus)];
+  sprintf(dbOverwriteStm, "UPDATE options SET value='%s' WHERE option=\"overwrite_on_import\" LIMIT 0,1", overwriteStatus);
+  dbErrorMsg = NULL;
+  rc = 0;
+
+  rc = sqlite3_exec(db, dbOverwriteStm, NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error during save of overwrite on import option: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  //----------------------------------------------------------------------------
   if (rc == SQLITE_OK) {
     gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
   }
@@ -1877,7 +1931,6 @@ void open_importFiles_window(GObject *menuitem) {
   gtk_window_present(GTK_WINDOW(fileChooserWindow));
 }
 
-
 //------------------------------------------------------------------------------
 
 void fileChooser_close(GtkButton *button, gpointer user_data) {
@@ -1891,6 +1944,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   // SQLite3 code
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
   GtkWidget *rootWindow = g_object_get_data(G_OBJECT(button), "rootWindow");
+  GtkTreeView *treeview = GTK_TREE_VIEW(g_object_get_data(G_OBJECT(button), "treeview"));
 
   GtkWidget *fileChooser = g_object_get_data(G_OBJECT(button), "fileChooser");
   GSList *filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(fileChooser));
@@ -1898,6 +1952,32 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   if (filenames == NULL) {
     return;
   }
+
+  //--------------------------------------------------------------------------
+  bool doOverwriteOnImport = false;
+
+  // Get overwrite setting
+  char *overwriteOnImport = NULL;
+  char *dbErrorMsg = NULL;
+  int rc = 0;
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error reading out overwrite on import option: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (get_db_answer_value(&receiveFromDb, "value", &overwriteOnImport)) {
+      if (strcmp(overwriteOnImport, "true") == 0) {
+        doOverwriteOnImport = true;
+      }
+    }
+    free(overwriteOnImport);
+    free_db_answer(&receiveFromDb);
+  }
+
+  //--------------------------------------------------------------------------
 
   gtk_widget_destroy(rootWindow);
 
@@ -1933,7 +2013,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
     if (dp != NULL) {
       // Its a folder most likely
-      int retVal = read_out_path(item->data, statusBar, contextId, progressBar, i, filesToAdd, model, db);
+      int retVal = read_out_path(item->data, statusBar, contextId, progressBar, i, filesToAdd, model, db, doOverwriteOnImport);
 
       if (retVal != -1) {
         filesAdded += retVal;
@@ -1942,7 +2022,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
       closedir(dp);
     } else if (fileType != NULL && strlen(fileType) < 6) {
-      if (read_and_add_file_to_model(item->data, true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db)) {
+      if (read_and_add_file_to_model(item->data, true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db, doOverwriteOnImport)) {
         ++filesAdded;
       } else {
         ++filesError;
@@ -1960,6 +2040,10 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
 
   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
 
+  if (doOverwriteOnImport) {
+    clearAndUpdateDataStore(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)), db);
+  }
+
   char errorString[64];
   sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
 
@@ -1971,6 +2055,18 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
 
   gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), false);
+}
+
+void clearAndUpdateDataStore(GtkListStore *dataStore, sqlite3 *db) {
+  gtk_list_store_clear(dataStore);
+
+  char *dbErrorMsg = NULL;
+
+  int rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error while restoring ebook list in clean and update functon: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
 }
 
 
@@ -1997,6 +2093,33 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
   GtkWidget *progressRevealer = g_object_get_data(G_OBJECT(widget), "progressRevealer");
 
   if (format == 8) {
+
+    //--------------------------------------------------------------------------
+    bool doOverwriteOnImport = false;
+
+    // Get overwrite setting
+    char *overwriteOnImport = NULL;
+    char *dbErrorMsg = NULL;
+    int rc = 0;
+    struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+    rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error reading out overwrite on import option: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      if (get_db_answer_value(&receiveFromDb, "value", &overwriteOnImport)) {
+        if (strcmp(overwriteOnImport, "true") == 0) {
+          doOverwriteOnImport = true;
+        }
+      }
+      free(overwriteOnImport);
+      free_db_answer(&receiveFromDb);
+    }
+
+    //--------------------------------------------------------------------------
+
     gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), true);
 
     char message[512];
@@ -2033,7 +2156,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
       DIR *dp = opendir(cleanedPath);
       if (dp != NULL) {
         // Its a folder most likely
-        int retVal = read_out_path((char*) cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model, db);
+        int retVal = read_out_path((char*) cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model, db, doOverwriteOnImport);
 
         if (retVal != -1) {
           filesAdded += retVal;
@@ -2042,7 +2165,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
 
         free(cleanedPath);
         closedir(dp);
-      } else if (read_and_add_file_to_model(uriList[i], true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db)) {
+      } else if (read_and_add_file_to_model(uriList[i], true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db, doOverwriteOnImport)) {
         ++filesAdded;
       } else {
         ++filesError;
@@ -2050,6 +2173,11 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     }
 
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
+
+    if (doOverwriteOnImport) {
+      clearAndUpdateDataStore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(widget))), db);
+    }
+
     char errorString[64];
     sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
 
@@ -2352,23 +2480,10 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
 //------------------------------------------------------------------------------
 void search_icon_click(GtkEntry* entry, GtkEntryIconPosition icon_pos, GdkEvent* event, gpointer user_data) {
   if (icon_pos == GTK_ENTRY_ICON_SECONDARY) {
-
     GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
-
-    char *dbErrorMsg = NULL;
-    int rc = 0;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
-
-    gtk_list_store_clear(dataStore);
-
-    rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while restoring ebook list in clear functon: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    }
-
+    clearAndUpdateDataStore(dataStore, db);
     gtk_entry_set_text(entry, "");
-
   } else {
     search_handle_search(entry, user_data);
   }
@@ -2556,7 +2671,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
 
 //------------------------------------------------------------------------------
 
-bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget* statusBar, unsigned int contextId, bool showProgress, GtkWidget* progressBar, unsigned int index, unsigned int filesToAdd, bool addFileToModel, GtkTreeModel *model, sqlite3* db) {
+bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget* statusBar, unsigned int contextId, bool showProgress, GtkWidget* progressBar, unsigned int index, unsigned int filesToAdd, bool addFileToModel, GtkTreeModel *model, sqlite3* db, bool doOverwriteOnImport) {
   GtkTreeIter iter;
 
   char* fileType = strrchr(inputFileName, '.');
@@ -2704,17 +2819,51 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
   }
 
   if (format != 0) {
-
-    //--------------------------------------------------------------------------
     bool dbOkay = true;
     char *dbErrorMsg = NULL;
+    int rc = 0;
 
-    int additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
+    char *dbStm = NULL;
+    int additionSize = 0;
+
+    bool hasOverwrite = false;
+    char *existingId = NULL;
+
+    if (doOverwriteOnImport) {
+      struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+      dbStm = (char*) calloc(60 + strlen(cleanedFileName), sizeof(char));
+      sprintf(dbStm, "SELECT id FROM ebook_collection WHERE filename='%s' LIMIT 0,1", cleanedFileName );
+      rc = sqlite3_exec(db, dbStm, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+      if (rc != SQLITE_OK) {
+        sqlite3_free(dbErrorMsg);
+      } else {
+        if (get_db_answer_value(&receiveFromDb, "id", &existingId)) {
+          hasOverwrite = true;
+        }
+      }
+
+      free(dbStm);
+    }
+
+    if (!hasOverwrite) {
+      additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
                        + (author == NULL ? 7 : strlen(author))
                        + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
 
-    char *dbStm = (char*) calloc((71 + additionSize), sizeof(char));
+      dbStm = (char*) calloc((71 + additionSize), sizeof(char));
+    } else {
+      additionSize = 1 + strlen(existingId)
+        + (title == NULL ? strlen(cleanedFileName) : strlen(title))
+        + (author == NULL ? 7 : strlen(author))
+        + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
 
+      dbStm = (char*) calloc((75+ additionSize), sizeof(char));
+    }
+
+
+    if (!hasOverwrite) {
     sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",0,0,NULL,NULL)",
       format,
       author == NULL ? "Unknown" : author,
@@ -2722,8 +2871,20 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
       hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
     );
+    } else {
+      sprintf(dbStm, "UPDATE ebook_collection SET author=\"%s\", title=\"%s\", path=\"%s\" WHERE id==%s LIMIT 0,1",
+        author == NULL ? "Unknown" : author,
+        title == NULL ? cleanedFileName : title,
+        hasCleanPath ? cleanedPath : &cleanedPath[7],
+        existingId
+      );
 
-    int rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
+      free(existingId);
+    }
+
+    //--------------------------------------------------------------------------
+
+    rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
       dbOkay = false;
       if (rc == SQLITE_FULL) {
@@ -2740,18 +2901,33 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
     //--------------------------------------------------------------------------
     if (dbOkay) {
-      gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-      gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-        FORMAT_COLUMN, &lowerFiletype[1],
-        AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
-        TITLE_COLUMN, title == NULL ? cleanedFileName : title,
-        CATEGORY_COLUMN, "",
-        TAGS_COLUMN, "",
-        FILENAME_COLUMN, cleanedFileName,
-        PRIORITY_COLUMN, 0,
-        READ_COLUMN, false,
-        -1
-      );
+      if (!hasOverwrite) {
+        gtk_list_store_insert_with_values(GTK_LIST_STORE(model), &iter, -1,
+          FORMAT_COLUMN, &lowerFiletype[1],
+          AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
+          TITLE_COLUMN, title == NULL ? cleanedFileName : title,
+          CATEGORY_COLUMN, "",
+          TAGS_COLUMN, "",
+          FILENAME_COLUMN, cleanedFileName,
+          PRIORITY_COLUMN, 0,
+          READ_COLUMN, false,
+          -1
+        );
+        /*
+        gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+
+        gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+          FORMAT_COLUMN, &lowerFiletype[1],
+          AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
+          TITLE_COLUMN, title == NULL ? cleanedFileName : title,
+          CATEGORY_COLUMN, "",
+          TAGS_COLUMN, "",
+          FILENAME_COLUMN, cleanedFileName,
+          PRIORITY_COLUMN, 0,
+          READ_COLUMN, false,
+          -1
+        );*/
+      }
 
       if (showStatus && statusBar != NULL) {
         sprintf(message, "[ADDED] %s", cleanedFileName);
@@ -2799,7 +2975,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 }
 
 
-int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, GtkWidget *progressBar, unsigned int i, unsigned int filesToAdd, GtkTreeModel *model, sqlite3* db) {
+int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, GtkWidget *progressBar, unsigned int i, unsigned int filesToAdd, GtkTreeModel *model, sqlite3* db, bool doOverwriteOnImport) {
   char pathRoot[strlen(pathRootData)+1];
   strcpy(pathRoot, pathRootData);
 
@@ -2820,7 +2996,7 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
         char *completePath = malloc((pathSize) * sizeof(char));
         sprintf(completePath, "%s/%s", pathRoot, ep->d_name);
 
-        filesAdded += read_out_path(completePath, statusBar, contextId, progressBar, i, filesToAdd, model, db);
+        filesAdded += read_out_path(completePath, statusBar, contextId, progressBar, i, filesToAdd, model, db, doOverwriteOnImport);
         free(completePath);
       } else if (ep->d_type == 8) {
         char *folderFileType = strrchr(ep->d_name, '.');
@@ -2841,7 +3017,7 @@ int read_out_path(char* pathRootData, GtkWidget *statusBar, guint contextId, Gtk
           sprintf(completePath, "%s/%s", pathRoot, ep->d_name);
 
           if (strcmp(folderLowerFileType, ".pdf") == 0 || strcmp(folderLowerFileType, ".epub") == 0 || strcmp(folderLowerFileType, ".mobi") == 0 || strcmp(folderLowerFileType, ".chm") == 0) {
-            if (read_and_add_file_to_model(completePath, true, statusBar, contextId, false, progressBar, i, filesToAdd, true, model, db)) {
+            if (read_and_add_file_to_model(completePath, true, statusBar, contextId, false, progressBar, i, filesToAdd, true, model, db, doOverwriteOnImport)) {
               gtk_progress_bar_pulse(GTK_PROGRESS_BAR(progressBar));
               ++filesAdded;
             }
