@@ -185,6 +185,7 @@ I try to make things happen, if possible.
 * Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
+* Add a switch of what columns to search in using the search bar
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
