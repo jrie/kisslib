@@ -58,6 +58,8 @@ gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionD
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
+void handle_editing_priority_value(GtkAdjustment*, gpointer);
+void handle_editing_priority(GtkAdjustment*, gpointer);
 
 void delete_selected_entry_from_db_and_store(GtkWidget*);
 void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
@@ -554,7 +556,7 @@ void run(GtkApplication *app, gpointer user_data) {
   //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
 
   GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(columnTitle, 100);
+  gtk_tree_view_column_set_min_width(columnTitle, 180);
   gtk_tree_view_column_set_resizable(columnTitle, true);
   gtk_cell_renderer_set_padding(ebookListCategory, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnCategory);
@@ -563,26 +565,32 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListTags), "editable", true, NULL);
   //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
   GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes("Tags", ebookListTags, "text", TAGS_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(columnTags, 100);
+  gtk_tree_view_column_set_min_width(columnTags, 180);
   gtk_tree_view_column_set_resizable(columnTags, true);
   gtk_cell_renderer_set_padding(ebookListTags, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTags);
 
   GtkCellRenderer *ebookListFilename = gtk_cell_renderer_text_new();
   GtkTreeViewColumn *columnFilename = gtk_tree_view_column_new_with_attributes("Filename", ebookListFilename, "text", FILENAME_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(columnFilename, 160);
+  gtk_tree_view_column_set_min_width(columnFilename, 180);
   gtk_tree_view_column_set_resizable(columnFilename, true);
   gtk_cell_renderer_set_padding(ebookListFilename, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnFilename);
 
-  GtkCellRenderer *ebookListPriority = gtk_cell_renderer_text_new();
+  GtkAdjustment *priorityAdjustment = gtk_adjustment_new(0, -10, 10, 1, 5, 0);
+  GtkCellRenderer *ebookListPriority = gtk_cell_renderer_spin_new();
   g_object_set(G_OBJECT(ebookListPriority), "editable", true, NULL);
-  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
+  g_object_set(G_OBJECT(ebookListPriority), "digits", 0, NULL);
+  g_object_set(G_OBJECT(ebookListPriority), "adjustment", priorityAdjustment, NULL);
   GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(columnPriority, 60);
-  gtk_tree_view_column_set_fixed_width(columnPriority, 60);
+  gtk_tree_view_column_set_min_width(columnPriority, 100);
   gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
+
+  g_signal_connect(G_OBJECT(priorityAdjustment), "value-changed", G_CALLBACK(handle_editing_priority_value), ebookList);
+  g_signal_connect(G_OBJECT(priorityAdjustment), "changed", G_CALLBACK(handle_editing_priority), ebookList);
+
+
 
   GtkCellRenderer *ebookListRead = gtk_cell_renderer_toggle_new();
   GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
@@ -2667,6 +2675,57 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
 
   return true;
 }
+
+//------------------------------------------------------------------------------
+void handle_editing_priority_value(GtkAdjustment *adjustment, gpointer user_data) {
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkTreeIter iter;
+
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(user_data));
+  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+    gdouble value = gtk_adjustment_get_value(adjustment);
+    //gtk_list_store_set(dataStore, &iter, PRIORITY_COLUMN, (int) value, -1);
+    gtk_adjustment_configure(adjustment, (int) value, -10, 10, 1, 5, 0);
+  }
+}
+
+void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
+  gdouble value = gtk_adjustment_get_value(adjustment);
+
+  if (value > 10) {
+    value = 10;
+  } else if (value < -10) {
+    value = -10;
+  }
+
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(user_data));
+  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+    gchar *filenameStr = NULL;
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
+
+    char *dbErrorMsg = 0;
+    sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+    char stmt[69 + strlen(filenameStr) + 3];
+    sprintf(stmt, "UPDATE ebook_collection SET priority=%d WHERE filename == \"%s\" LIMIT 0,1", (int) value, filenameStr);
+    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      gtk_list_store_set(dataStore, &iter, PRIORITY_COLUMN, (int) value, -1);
+      gtk_adjustment_set_value(adjustment, value);
+    }
+
+    g_free(filenameStr);
+  }
+}
+
 
 //------------------------------------------------------------------------------
 
