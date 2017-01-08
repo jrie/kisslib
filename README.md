@@ -186,7 +186,7 @@ I try to make things happen, if possible.
 * ~~Add the option to show/hide particular columns from the main view, for example by using a popup or in an options dialog~~
 * Add tags, so ebooks can be tagged with short terms to make a search for particular books easier
 * Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too
-* Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns
+* ~~Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns~~
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * Add a switch of what columns to search in using the search bar
