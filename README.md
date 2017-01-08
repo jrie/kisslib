@@ -125,6 +125,10 @@ Also the author and title fields can be edited and are saved instantly in the ta
 
 In case a title is misleading, it is possible to get the actual file name into the field when editing in the table view. To do so, the field has to be emptied (meaning to remove all text in it) and if there is no data present, the actual filename becomes added to the list cell. If the author field is cleared in the table view, the generel placeholder "Unknown" is set and directly saved to the database.
 
+Also the columns which are shown, can be set temporary in the "View" > "Show or hide columns" menu or permanently by using "Options" dialog, selecting or deselecting the desired columns to display and saving.
+
+In the "Options" dialog, it is also possible to set if ebooks on import of existing filenames should be overwritten. Resetting the author(s) and title columns, but leaving all other data intact.
+
 For a quick search in the collection, it is possible to use type ahead find on the titles. Meaning, searching the titles can be done by simply typing in the application going with the first letters of the title as displayed in KISS Ebook.
 
 Shortcuts:
@@ -172,7 +176,7 @@ Striked out items are implemented already and thank you for all your feedback so
 I try to make things happen, if possible.
 
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
-* Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files
+* ~~Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files~~
 * ~~Add the ability to sort by format, author and title columns~~
 * Add a option to sort by default on format, authors or title on startup
 * ~~Add a search option to only show files with particular title and author~~
