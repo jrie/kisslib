@@ -196,7 +196,7 @@ I try to make things happen, if possible.
 ## Known issues
 
 ##### General
-* Import of files via drag and drop: Filenames with "Umlaute" like ÄÖÜ are not supported, but those can be imported using the add files and folders-dialog
+* Import of files via drag and drop: File names with "Umlaute" like "ÄÖÜ" are not supported by drag and drop and display an error after import, but those can be imported fine using the "add files and folders"-dialog in conjuction with the new "overwrite existing files" option which only adds those erroring via drag and drop
 * If you upgrade from a previous version and there are any sql errors while saving the launcher applications or importing files, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications and read out ebook information table) - this is a one time action, but youve got to reimport your ebooks and reenter the launcher applications after this step
 * In some cases the dialog for "import files and folders", "edit ebook details" and "set launcher applciations" are **opened but behind the main window**. Please note that when those dialogs are open, and the main application state is set to background and not handle input at this time, so you must move the main window away in order to reach the dialogs, please report it if you see this happening on any distro
 * found another issue? (please report it or email me)
