@@ -10,6 +10,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gio/gio.h>
+#include <glib.h>
 
 //SQLite3
 #include <sqlite3.h>
@@ -2142,41 +2143,26 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     }
 
     for (int i = 0; uriList && uriList[i]; ++i) {
-      char *cleanedPath = (char*) calloc(strlen(&uriList[i][7]) + 1, sizeof(char));
-      char *pathPart = strstr(&uriList[i][7], "%20");
-      if (pathPart == NULL) {
-        strcpy(cleanedPath, &uriList[i][7]);
-      } else {
-        int pathSize = 0;
-        long int length = 0;
-        while (pathPart != NULL) {
-          length = pathPart - &uriList[i][7];
-          strncat(cleanedPath, &uriList[i][7+pathSize], (pathPart - &uriList[i][7]) - pathSize);
-          strcat(cleanedPath, " ");
-          pathSize = length+3;
-          pathPart = strstr(&pathPart[3], "%20");
-        }
-
-        strncat(cleanedPath, &uriList[i][7+pathSize], strlen(uriList[i])-pathSize);
-      }
+      char *cleanedPath = g_uri_unescape_string(&uriList[i][7], NULL);
 
       DIR *dp = opendir(cleanedPath);
       if (dp != NULL) {
         // Its a folder most likely
-        int retVal = read_out_path((char*) cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model, db, doOverwriteOnImport);
+        int retVal = read_out_path(cleanedPath, statusBar, contextId, progressBar, i, filesToAdd, model, db, doOverwriteOnImport);
 
         if (retVal != -1) {
           filesAdded += retVal;
           filesToAdd += retVal-1;
         }
 
-        free(cleanedPath);
         closedir(dp);
-      } else if (read_and_add_file_to_model(uriList[i], true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db, doOverwriteOnImport)) {
+      } else if (read_and_add_file_to_model(cleanedPath, true, statusBar, contextId, true, progressBar, i, filesToAdd, true, model, db, doOverwriteOnImport)) {
         ++filesAdded;
       } else {
         ++filesError;
       }
+
+      free(cleanedPath);
     }
 
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 1.0);
