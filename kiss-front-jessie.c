@@ -61,6 +61,7 @@ gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
 void handle_editing_priority_value(GtkAdjustment*, gpointer);
 void handle_editing_priority(GtkAdjustment*, gpointer);
+void handle_toggle_read(GtkCellRendererToggle*, gchar*, gpointer);
 
 void delete_selected_entry_from_db_and_store(GtkWidget*);
 void handle_row_activated(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
@@ -306,7 +307,7 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     } else if (strcmp(columnNames[i], "priority") == 0) {
       priority = atoi(argv[i]);
     } else if (strcmp(columnNames[i], "read") == 0) {
-      read = atoi(argv[i]);
+      read = (gboolean) atoi(argv[i]);
     }
   }
 
@@ -321,20 +322,6 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
     READ_COLUMN, read,
     -1
   );
-  /*
-  gtk_list_store_append(store, &iter);
-  gtk_list_store_set(store, &iter,
-    FORMAT_COLUMN, formatString,
-    AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
-    TITLE_COLUMN, title,
-    CATEGORY_COLUMN, category == NULL ? "" : category,
-    TAGS_COLUMN, tags == NULL ? "" : tags,
-    FILENAME_COLUMN, filename,
-    PRIORITY_COLUMN, priority,
-    READ_COLUMN, read,
-    -1
-  );
-  */
 
   free(author);
   free(title);
@@ -595,6 +582,8 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkCellRenderer *ebookListRead = gtk_cell_renderer_toggle_new();
   GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
+  gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(ebookListRead), true);
+  g_signal_connect(G_OBJECT(ebookListRead), "toggled", G_CALLBACK(handle_toggle_read), ebookList);
   gtk_tree_view_column_set_min_width(columnRead, 60);
   gtk_tree_view_column_set_fixed_width(columnRead, 60);
   gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
@@ -2239,7 +2228,7 @@ void handle_launchCommand(GtkWidget* widget) {
 
   //----------------------------------------------------------------------------
   int rc = 0;
-  char *dbErrorMsg = 0;
+  char *dbErrorMsg = NULL;
   struct dbAnswer receiveFromDb = {0, NULL, NULL};
 
   char *filePath = NULL;
@@ -2456,7 +2445,7 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
       return;
     }
 
-    char *dbErrorMsg = 0;
+    char *dbErrorMsg = NULL;
 
     sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
     char stmt[90+strlen(authorStr)+strlen(titleStr)];
@@ -2572,7 +2561,7 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
     strcpy(author, new_text);
   }
 
-  char *dbErrorMsg = 0;
+  char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
   char stmt[103+strlen(authorStr)+strlen(titleStr)+strlen(author)];
@@ -2621,7 +2610,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     return false;
   }
 
-  char *dbErrorMsg = 0;
+  char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
   if (strlen(new_text) != 0) {
     char stmt[102+strlen(authorStr)+strlen(titleStr)+strlen(new_text)];
@@ -2700,7 +2689,7 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     gchar *filenameStr = NULL;
     gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
 
-    char *dbErrorMsg = 0;
+    char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
     char stmt[69 + strlen(filenameStr) + 3];
@@ -2713,6 +2702,41 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     } else {
       gtk_list_store_set(dataStore, &iter, PRIORITY_COLUMN, (int) value, -1);
       gtk_adjustment_set_value(adjustment, value);
+    }
+
+    g_free(filenameStr);
+  }
+}
+
+//------------------------------------------------------------------------------
+
+void handle_toggle_read(GtkCellRendererToggle *cell_renderer, gchar *path, gpointer user_data) {
+
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+
+  GtkTreePath *treePath = gtk_tree_path_new_from_string(path);
+  if (gtk_tree_model_get_iter(model, &iter, treePath)) {
+    gchar *filenameStr = NULL;
+    gboolean toggleState = false;
+
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, READ_COLUMN, &toggleState, -1);
+    toggleState = !toggleState;
+
+    char *dbErrorMsg = NULL;
+    sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+    char stmt[66 + strlen(filenameStr)];
+    sprintf(stmt, "UPDATE ebook_collection SET read=%d WHERE filename == \"%s\" LIMIT 0,1", (bool) toggleState, filenameStr);
+    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      gtk_cell_renderer_toggle_set_active(cell_renderer, toggleState);
+      gtk_list_store_set(dataStore, &iter, READ_COLUMN, toggleState, -1);
     }
 
     g_free(filenameStr);
