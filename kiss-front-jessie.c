@@ -59,6 +59,8 @@ gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionD
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
 gboolean handle_editing_title(GtkCellRendererText*, gchar*, gchar*, gpointer);
+gboolean handle_editing_category(GtkCellRendererText*, gchar*, gchar*, gpointer);
+gboolean handle_editing_tags(GtkCellRendererText*, gchar*, gchar*, gpointer);
 void handle_editing_priority_value(GtkAdjustment*, gpointer);
 void handle_editing_priority(GtkAdjustment*, gpointer);
 void handle_toggle_read(GtkCellRendererToggle*, gchar*, gpointer);
@@ -541,8 +543,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkCellRenderer *ebookListCategory = gtk_cell_renderer_text_new();
   g_object_set(G_OBJECT(ebookListCategory), "editable", true, NULL);
-  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
-
+  g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
   GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTitle, 180);
   gtk_tree_view_column_set_resizable(columnTitle, true);
@@ -551,7 +552,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkCellRenderer *ebookListTags = gtk_cell_renderer_text_new();
   g_object_set(G_OBJECT(ebookListTags), "editable", true, NULL);
-  //g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
+  g_signal_connect(G_OBJECT(ebookListTags), "edited", G_CALLBACK(handle_editing_tags), ebookList);
   GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes("Tags", ebookListTags, "text", TAGS_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTags, 180);
   gtk_tree_view_column_set_resizable(columnTags, true);
@@ -570,15 +571,13 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListPriority), "editable", true, NULL);
   g_object_set(G_OBJECT(ebookListPriority), "digits", 0, NULL);
   g_object_set(G_OBJECT(ebookListPriority), "adjustment", priorityAdjustment, NULL);
+
   GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnPriority, 100);
   gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
-
   g_signal_connect(G_OBJECT(priorityAdjustment), "value-changed", G_CALLBACK(handle_editing_priority_value), ebookList);
   g_signal_connect(G_OBJECT(priorityAdjustment), "changed", G_CALLBACK(handle_editing_priority), ebookList);
-
-
 
   GtkCellRenderer *ebookListRead = gtk_cell_renderer_toggle_new();
   GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
@@ -589,10 +588,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
 
-
   //----------------------------------------------------------------------------
-
-
   // Sorting of columns
   gtk_tree_view_column_set_clickable(columnFormat, true);
   gtk_tree_view_column_set_clickable(columnAuthor, true);
@@ -2527,57 +2523,49 @@ void handle_sort_column(GtkTreeViewColumn* column, gpointer user_data) {
 
 //------------------------------------------------------------------------------
 gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
-  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
-  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
-  GtkTreeIter iter;
 
-  gtk_tree_model_get_iter_from_string(model, &iter, path);
-
-  gchar *formatStr;
-  gchar *authorStr;
-  gchar *titleStr;
-
-  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
-
-  int format = 0;
-  if (strcmp(formatStr, "pdf") == 0) {
-    format = 1;
-  } else if (strcmp(formatStr, "epub") == 0) {
-    format = 2;
-  } else if (strcmp(formatStr, "mobi") == 0) {
-    format = 3;
-  } else if (strcmp(formatStr, "chm") == 0) {
-    format = 4;
-  } else {
+  unsigned int inputLength = strlen(new_text);
+  if (inputLength > 512) {
     return false;
   }
 
-  int dataLength = strlen(new_text);
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+  gchar *filenameStr = NULL;
 
-  char author[dataLength == 0 ? 8 : dataLength+1];
-  if (dataLength == 0) {
-    strcpy(author, "Unknown");
-  } else {
-    strcpy(author, new_text);
-  }
-
+  int rc = 0;
   char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-  char stmt[103+strlen(authorStr)+strlen(titleStr)+strlen(author)];
-  sprintf(stmt, "UPDATE ebook_collection SET author = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1;", author, format, authorStr, titleStr);
-  int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+  if (gtk_tree_model_get_iter_from_string(model, &iter, path)) {
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
 
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
-  } else {
-    gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, author, -1);
+    char *stringValue = NULL;
+    char defaultValue[] = "Unknown";
+
+    if (inputLength != 0) {
+      stringValue = new_text;
+    } else {
+      stringValue = defaultValue;
+    }
+
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+      sqlite3_free(dbStmt);
+      g_free(filenameStr);
+      return false;
+    } else {
+      gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, stringValue, -1);
+    }
+
+    sqlite3_free(dbStmt);
+    g_free(filenameStr);
   }
-
-  g_free(formatStr);
-  g_free(authorStr);
-  g_free(titleStr);
 
   return true;
 }
@@ -2585,75 +2573,149 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
 
 //------------------------------------------------------------------------------
 gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
-  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
-  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
-  GtkTreeIter iter;
 
-  gtk_tree_model_get_iter_from_string(model, &iter, path);
-
-  gchar *formatStr;
-  gchar *authorStr;
-  gchar *titleStr;
-
-  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
-
-  int format = 0;
-  if (strcmp(formatStr, "pdf") == 0) {
-    format = 1;
-  } else if (strcmp(formatStr, "epub") == 0) {
-    format = 2;
-  } else if (strcmp(formatStr, "mobi") == 0) {
-    format = 3;
-  } else if (strcmp(formatStr, "chm") == 0) {
-    format = 4;
-  } else {
+  unsigned int inputLength = strlen(new_text);
+  if (inputLength > 512) {
     return false;
   }
 
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+  gchar *filenameStr = NULL;
+
+  int rc = 0;
   char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
-  if (strlen(new_text) != 0) {
-    char stmt[102+strlen(authorStr)+strlen(titleStr)+strlen(new_text)];
-    sprintf(stmt, "UPDATE ebook_collection SET title = \"%s\" WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", new_text, format, authorStr, titleStr);
-    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+
+  if (gtk_tree_model_get_iter_from_string(model, &iter, path)) {
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
+
+    char *stringValue = NULL;
+    char defaultValue[strlen(filenameStr)+1];
+    strcpy(defaultValue, filenameStr);
+
+    if (inputLength != 0) {
+      stringValue = new_text;
+    } else {
+      stringValue = defaultValue;
+    }
+
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
+      sqlite3_free(dbStmt);
+      g_free(filenameStr);
+      return false;
     } else {
-      gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, new_text, -1);
+      gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, stringValue, -1);
     }
-  } else {
-    struct dbAnswer dbAnswerData = { 0, NULL, NULL };
-    char stmt[101 + strlen(authorStr) + strlen(titleStr)];
-    sprintf(stmt, "SELECT filename FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
-    int rc = sqlite3_exec(db, stmt, fill_db_answer, (void*) &dbAnswerData, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    } else {
-      char *fileName = NULL;
-      if (get_db_answer_value(&dbAnswerData, "filename", &fileName)) {
-        char updateStmt[70+(strlen(fileName)*2)];
-        sprintf(updateStmt, "UPDATE ebook_collection SET title = \"%s\" WHERE filename == \"%s\" LIMIT 0,1", fileName, fileName);
-        int rc = sqlite3_exec(db, updateStmt, NULL, NULL, &dbErrorMsg);
-
-        if (rc != SQLITE_OK) {
-          fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-          sqlite3_free(dbErrorMsg);
-        } else {
-          gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, fileName, -1);
-        }
-
-        free(fileName);
-      }
-    }
+    sqlite3_free(dbStmt);
+    g_free(filenameStr);
   }
 
-  g_free(formatStr);
-  g_free(authorStr);
-  g_free(titleStr);
+  return true;
+}
+
+
+//------------------------------------------------------------------------------
+gboolean handle_editing_category(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
+
+  unsigned int inputLength = strlen(new_text);
+  if (inputLength > 512) {
+    return false;
+  }
+
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+  gchar *filenameStr = NULL;
+
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+  if (gtk_tree_model_get_iter_from_string(model, &iter, path)) {
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
+
+    char *stringValue = NULL;
+    char defaultValue[1] = "";
+
+    if (inputLength != 0) {
+      stringValue = new_text;
+    } else {
+      stringValue = defaultValue;
+    }
+
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+      sqlite3_free(dbStmt);
+      g_free(filenameStr);
+      return false;
+    } else {
+      gtk_list_store_set(dataStore, &iter, CATEGORY_COLUMN, stringValue, -1);
+    }
+
+    sqlite3_free(dbStmt);
+    g_free(filenameStr);
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+gboolean handle_editing_tags(GtkCellRendererText *renderer, gchar *path, gchar *new_text, gpointer user_data) {
+
+  unsigned int inputLength = strlen(new_text);
+  if (inputLength > 1024) {
+    return false;
+  }
+
+  GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(user_data));
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
+  GtkTreeIter iter;
+  gchar *filenameStr = NULL;
+
+  int rc = 0;
+  char *dbErrorMsg = NULL;
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+  if (gtk_tree_model_get_iter_from_string(model, &iter, path)) {
+    gtk_tree_model_get(model, &iter, FILENAME_COLUMN, &filenameStr, -1);
+
+    char *stringValue = NULL;
+    char defaultValue[1] = "";
+
+    if (inputLength != 0) {
+      stringValue = new_text;
+    } else {
+      stringValue = defaultValue;
+    }
+
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+      sqlite3_free(dbStmt);
+      g_free(filenameStr);
+      return false;
+    } else {
+      gtk_list_store_set(dataStore, &iter, TAGS_COLUMN, stringValue, -1);
+    }
+
+    sqlite3_free(dbStmt);
+    g_free(filenameStr);
+  }
 
   return true;
 }
@@ -2670,6 +2732,7 @@ void handle_editing_priority_value(GtkAdjustment *adjustment, gpointer user_data
     gtk_adjustment_configure(adjustment, (int) value, -10, 10, 1, 5, 0);
   }
 }
+
 
 void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
   gdouble value = gtk_adjustment_get_value(adjustment);
@@ -2692,9 +2755,9 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char stmt[69 + strlen(filenameStr) + 3];
-    sprintf(stmt, "UPDATE ebook_collection SET priority=%d WHERE filename == \"%s\" LIMIT 0,1", (int) value, filenameStr);
-    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+    char dbStmt[69 + strlen(filenameStr) + 3];
+    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1", (int) value, filenameStr);
+    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
@@ -2727,12 +2790,12 @@ void handle_toggle_read(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char stmt[66 + strlen(filenameStr)];
-    sprintf(stmt, "UPDATE ebook_collection SET read=%d WHERE filename == \"%s\" LIMIT 0,1", (bool) toggleState, filenameStr);
-    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+    char dbStmt[66 + strlen(filenameStr)];
+    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1", (bool) toggleState, filenameStr);
+    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
+      fprintf(stderr, "SQL error while updating read: %s\n", dbErrorMsg);
       sqlite3_free(dbErrorMsg);
     } else {
       gtk_cell_renderer_toggle_set_active(cell_renderer, toggleState);
@@ -2898,8 +2961,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     char *dbErrorMsg = NULL;
     int rc = 0;
 
-    char *dbStm = NULL;
-    int additionSize = 0;
+    char *dbStmt = NULL;
 
     bool hasOverwrite = false;
     char *existingId = NULL;
@@ -2907,9 +2969,9 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     if (doOverwriteOnImport) {
       struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-      dbStm = (char*) calloc(60 + strlen(cleanedFileName), sizeof(char));
-      sprintf(dbStm, "SELECT id FROM ebook_collection WHERE filename='%s' LIMIT 0,1", cleanedFileName );
-      rc = sqlite3_exec(db, dbStm, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+      dbStmt = (char*) calloc(60 + strlen(cleanedFileName), sizeof(char));
+      sprintf(dbStmt, "SELECT id FROM ebook_collection WHERE filename='%s' LIMIT 0,1", cleanedFileName );
+      rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
       if (rc != SQLITE_OK) {
         sqlite3_free(dbErrorMsg);
@@ -2919,35 +2981,19 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
         }
       }
 
-      free(dbStm);
+      free(dbStmt);
     }
 
     if (!hasOverwrite) {
-      additionSize = 1 + (title == NULL ? strlen(cleanedFileName) : strlen(title))
-                       + (author == NULL ? 7 : strlen(author))
-                       + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
-
-      dbStm = (char*) calloc((71 + additionSize), sizeof(char));
-    } else {
-      additionSize = 1 + strlen(existingId)
-        + (title == NULL ? strlen(cleanedFileName) : strlen(title))
-        + (author == NULL ? 7 : strlen(author))
-        + strlen(cleanedPath) + strlen(cleanedFileName) + 14;
-
-      dbStm = (char*) calloc((75+ additionSize), sizeof(char));
-    }
-
-
-    if (!hasOverwrite) {
-    sprintf(dbStm, "INSERT INTO ebook_collection VALUES (NULL,%d,\"%s\",\"%s\",\"%s\",\"%s\",0,0,NULL,NULL)",
+      dbStmt = sqlite3_mprintf("INSERT INTO ebook_collection VALUES (NULL,%d,'%q','%q','%q','%q',0,0,NULL,NULL)",
       format,
       author == NULL ? "Unknown" : author,
       title == NULL ? cleanedFileName : title,
       hasCleanPath ? cleanedPath : &cleanedPath[7],
       cleanedFileName
-    );
+      );
     } else {
-      sprintf(dbStm, "UPDATE ebook_collection SET author=\"%s\", title=\"%s\", path=\"%s\" WHERE id==%s LIMIT 0,1",
+      dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s LIMIT 0,1",
         author == NULL ? "Unknown" : author,
         title == NULL ? cleanedFileName : title,
         hasCleanPath ? cleanedPath : &cleanedPath[7],
@@ -2959,20 +3005,20 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
     //--------------------------------------------------------------------------
 
-    rc = sqlite3_exec(db, dbStm, NULL, NULL, &dbErrorMsg);
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
       dbOkay = false;
       if (rc == SQLITE_FULL) {
         fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
       } else {
         fprintf(stderr, "Unknown SQL error while inserting ebooks: %s\n", dbErrorMsg);
-        fprintf(stderr, "dbStmt: %s\n", dbStm);
+        fprintf(stderr, "dbStmt: %s\n", dbStmt);
       }
 
       sqlite3_free(dbErrorMsg);
     }
 
-    free(dbStm);
+    sqlite3_free(dbStmt);
 
     //--------------------------------------------------------------------------
     if (dbOkay) {
@@ -2988,20 +3034,6 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
           READ_COLUMN, false,
           -1
         );
-        /*
-        gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-
-        gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-          FORMAT_COLUMN, &lowerFiletype[1],
-          AUTHOR_COLUMN, author == NULL ? "Unknown" : author,
-          TITLE_COLUMN, title == NULL ? cleanedFileName : title,
-          CATEGORY_COLUMN, "",
-          TAGS_COLUMN, "",
-          FILENAME_COLUMN, cleanedFileName,
-          PRIORITY_COLUMN, 0,
-          READ_COLUMN, false,
-          -1
-        );*/
       }
 
       if (showStatus && statusBar != NULL) {
