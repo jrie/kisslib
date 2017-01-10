@@ -1912,8 +1912,8 @@ void open_importFiles_window(GObject *menuitem) {
   g_object_set_data(G_OBJECT(openButton), "rootWindow", fileChooserWindow);
   g_object_set_data(G_OBJECT(openButton), "fileChooser", chooser);
   g_object_set_data(G_OBJECT(openButton), "progressRevealer", g_object_get_data(G_OBJECT(menuitem), "progressRevealer"));
-  g_object_set_data(G_OBJECT(openButton), "progressBar", g_object_get_data(G_OBJECT(menuitem), "progressBar"));
-  g_object_set_data(G_OBJECT(openButton), "statusBar", g_object_get_data(G_OBJECT(menuitem), "statusBar"));
+  g_object_set_data(G_OBJECT(openButton), "progress", g_object_get_data(G_OBJECT(menuitem), "progress"));
+  g_object_set_data(G_OBJECT(openButton), "status", g_object_get_data(G_OBJECT(menuitem), "status"));
   g_object_set_data(G_OBJECT(openButton), "treeview", g_object_get_data(G_OBJECT(menuitem), "treeview"));
   g_object_set_data(G_OBJECT(openButton), "db", g_object_get_data(G_OBJECT(menuitem), "db"));
 
@@ -1984,8 +1984,8 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   GtkWidget *progressRevealer = g_object_get_data(G_OBJECT(button), "progressRevealer");
   gtk_revealer_set_reveal_child(GTK_REVEALER(progressRevealer), true);
 
-  GtkWidget *progressBar = g_object_get_data(G_OBJECT(button), "progressBar");
-  GtkWidget *statusBar = g_object_get_data(G_OBJECT(button), "statusBar");
+  GtkWidget *progressBar = g_object_get_data(G_OBJECT(button), "progress");
+  GtkWidget *statusBar = g_object_get_data(G_OBJECT(button), "status");
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(g_object_get_data(G_OBJECT(button), "treeview")));
   guint contextId = 0;
 
@@ -2551,19 +2551,25 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
     }
 
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
-    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        sqlite3_free(dbStmt);
+        g_free(filenameStr);
+        return false;
+      } else {
+        gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, stringValue, -1);
+      }
+
       sqlite3_free(dbStmt);
+    } else {
       g_free(filenameStr);
       return false;
-    } else {
-      gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, stringValue, -1);
     }
 
-    sqlite3_free(dbStmt);
     g_free(filenameStr);
   }
 
@@ -2602,19 +2608,25 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     }
 
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
-    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        sqlite3_free(dbStmt);
+        g_free(filenameStr);
+        return false;
+      } else {
+        gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, stringValue, -1);
+      }
+
       sqlite3_free(dbStmt);
+    } else {
       g_free(filenameStr);
       return false;
-    } else {
-      gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, stringValue, -1);
     }
 
-    sqlite3_free(dbStmt);
     g_free(filenameStr);
   }
 
@@ -2652,19 +2664,25 @@ gboolean handle_editing_category(GtkCellRendererText *renderer, gchar *path, gch
     }
 
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
-    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        sqlite3_free(dbStmt);
+        g_free(filenameStr);
+        return false;
+      } else {
+        gtk_list_store_set(dataStore, &iter, CATEGORY_COLUMN, stringValue, -1);
+      }
+
       sqlite3_free(dbStmt);
+    } else {
       g_free(filenameStr);
       return false;
-    } else {
-      gtk_list_store_set(dataStore, &iter, CATEGORY_COLUMN, stringValue, -1);
     }
 
-    sqlite3_free(dbStmt);
     g_free(filenameStr);
   }
 
@@ -2701,19 +2719,25 @@ gboolean handle_editing_tags(GtkCellRendererText *renderer, gchar *path, gchar *
     }
 
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
-    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        sqlite3_free(dbStmt);
+        g_free(filenameStr);
+        return false;
+      } else {
+        gtk_list_store_set(dataStore, &iter, TAGS_COLUMN, stringValue, -1);
+      }
+
       sqlite3_free(dbStmt);
+    } else {
       g_free(filenameStr);
       return false;
-    } else {
-      gtk_list_store_set(dataStore, &iter, TAGS_COLUMN, stringValue, -1);
     }
 
-    sqlite3_free(dbStmt);
     g_free(filenameStr);
   }
 
@@ -3004,21 +3028,22 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     }
 
     //--------------------------------------------------------------------------
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        dbOkay = false;
+        if (rc == SQLITE_FULL) {
+          fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
+        } else {
+          fprintf(stderr, "Unknown SQL error while inserting ebooks: %s\n", dbErrorMsg);
+          fprintf(stderr, "dbStmt: %s\n", dbStmt);
+        }
 
-    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
-    if (rc != SQLITE_OK) {
-      dbOkay = false;
-      if (rc == SQLITE_FULL) {
-        fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
-      } else {
-        fprintf(stderr, "Unknown SQL error while inserting ebooks: %s\n", dbErrorMsg);
-        fprintf(stderr, "dbStmt: %s\n", dbStmt);
+        sqlite3_free(dbErrorMsg);
       }
 
-      sqlite3_free(dbErrorMsg);
+      sqlite3_free(dbStmt);
     }
-
-    sqlite3_free(dbStmt);
 
     //--------------------------------------------------------------------------
     if (dbOkay) {
