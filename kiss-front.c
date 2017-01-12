@@ -32,6 +32,16 @@ enum {
   N_COLUMNS
 };
 
+enum {
+   SEARCH_AUTHOR_TITLE,
+   SEARCH_FORMAT,
+   SEARCH_AUTHORS,
+   SEARCH_TITLE,
+   SEARCH_CATEGORY,
+   SEARCH_TAGS,
+   SEARCH_FILENAME
+};
+
 typedef struct dbHandlingData {
   GtkTreeModel *model;
   GtkListStore *store;
@@ -414,8 +424,8 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
 
   GtkWidget *menuBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-  g_object_set(G_OBJECT(menuBox), "margin", 10, "margin-top", 5, NULL);
-  gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 5, 1);
+  g_object_set(G_OBJECT(menuBox), "margin", 10, "margin-top", 5, "margin-bottom", 5, NULL);
+  gtk_grid_attach(GTK_GRID(grid), menuBox, 0, 0, 10, 1);
 
   //----------------------------------------------------------------------------
 
@@ -438,7 +448,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkAdjustment *hadjustment = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(ebookList));
   GtkWidget *scrollWin = gtk_scrolled_window_new(hadjustment, vadjustment);
   g_object_set(G_OBJECT(scrollWin), "margin-left", 10, "margin-right", 10, NULL);
-  gtk_grid_attach(GTK_GRID(grid), scrollWin, 0, 1, 10, 1);
+  gtk_grid_attach(GTK_GRID(grid), scrollWin, 0, 2, 10, 1);
   gtk_container_add(GTK_CONTAINER(scrollWin), ebookList);
 
   gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scrollWin), 800);
@@ -449,7 +459,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget* progressRevealer = gtk_revealer_new();
   gtk_revealer_set_transition_duration(GTK_REVEALER(progressRevealer), 2250);
   gtk_revealer_set_transition_type(GTK_REVEALER(progressRevealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_UP);
-  gtk_grid_attach(GTK_GRID(grid), progressRevealer, 0, 2, 10, 1);
+  gtk_grid_attach(GTK_GRID(grid), progressRevealer, 0, 3, 10, 1);
 
   GtkWidget *progressBar = gtk_progress_bar_new();
   g_object_set(G_OBJECT(progressBar), "margin-top", 8, "margin-bottom", 5, "margin-left", 15, "margin-right", 15, NULL);
@@ -457,7 +467,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(progressRevealer), progressBar);
 
   GtkWidget *statusBar = gtk_statusbar_new();
-  gtk_grid_attach(GTK_GRID(grid), statusBar, 0, 3, 10, 1);
+  gtk_grid_attach(GTK_GRID(grid), statusBar, 0, 4, 10, 1);
   guint contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Welcome to KISS Ebook");
 
@@ -474,18 +484,31 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(ebookList), "treeview", ebookList);
 
   //----------------------------------------------------------------------------
+  GtkWidget *searchSelection = gtk_combo_box_text_new();
+  g_object_set(G_OBJECT(searchSelection), "margin", 10, "margin-top", 0, NULL);
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Author and title");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Format");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Authors");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Title");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Category");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Tags");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Filename");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(searchSelection), 0);
+  gtk_grid_attach(GTK_GRID(grid), searchSelection, 0, 1, 1, 1);
+  g_object_set_data(G_OBJECT(ebookList), "searchSelection", searchSelection);
 
   GtkWidget *searchEntry = gtk_entry_new();
-  g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 5, NULL);
+  g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 0, NULL);
   gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), "Search inside ebook list...");
   gtk_entry_set_max_length(GTK_ENTRY(searchEntry), 64);
   gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, "system-search");
   gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
   gtk_entry_set_icon_activatable(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, true);
   gtk_entry_set_icon_tooltip_text(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "Clear search and restore entries to default.");
-  gtk_grid_attach(GTK_GRID(grid), searchEntry, 5, 0, 5, 1);
+  gtk_grid_attach(GTK_GRID(grid), searchEntry, 1, 1, 9, 1);
   g_signal_connect(G_OBJECT(searchEntry), "icon-press", G_CALLBACK(search_icon_click), ebookList);
   g_signal_connect(G_OBJECT(searchEntry), "activate", G_CALLBACK(search_handle_search), ebookList);
+
 
   //----------------------------------------------------------------------------
 
@@ -2476,21 +2499,68 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
   char *dbErrorMsg = NULL;
   int rc = 0;
   sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+  GtkWidget *searchSelection = g_object_get_data(G_OBJECT(user_data), "searchSelection");
   GtkListStore *dataStore = g_object_get_data(G_OBJECT(user_data), "dataStore");
   gtk_list_store_clear(dataStore);
 
   if (retVal != 0) {
-    char dbStmt[152 + (retVal * 2)];
-    sprintf(dbStmt, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection WHERE author LIKE \"%%%s%%\" OR title LIKE \"%%%s%%\" ORDER BY author, title ASC", trimmedText, trimmedText);
 
-    rc = sqlite3_exec(db, dbStmt, add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+    gint searchItem = gtk_combo_box_get_active(GTK_COMBO_BOX(searchSelection));
+    char searchStmt[99] = "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection WHERE";
+    char *dbStmt = NULL;
+    int format = 0;
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while filtering ebook list: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    } else {
-      free(trimmedText);
-      return;
+    switch (searchItem) {
+      default:
+      case SEARCH_AUTHOR_TITLE:
+        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' OR title LIKE '%%%q%%' ORDER BY author, title ASC", searchStmt, trimmedText, trimmedText);
+        break;
+      case SEARCH_FORMAT:
+
+        if (strncmp(trimmedText, "pdf", 3) == 0) {
+          format = 1;
+        } else if (strncmp(trimmedText, "epub", 4) == 0) {
+          format = 2;
+        } else if (strncmp(trimmedText, "mobi", 4) == 0) {
+          format = 3;
+        } else if (strncmp(trimmedText, "chm", 3) == 0) {
+          format = 4;
+        }
+
+        if (format != 0) {
+          dbStmt = sqlite3_mprintf("%s format == %d ORDER BY title ASC", searchStmt, format);
+        }
+        break;
+      case SEARCH_AUTHORS:
+        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' ORDER BY author ASC", searchStmt, trimmedText);
+        break;
+      case SEARCH_TITLE:
+        dbStmt = sqlite3_mprintf("%s title LIKE '%%%q%%' ORDER BY title ASC", searchStmt, trimmedText);
+        break;
+      case SEARCH_CATEGORY:
+        dbStmt = sqlite3_mprintf("%s category LIKE '%%%q%%' ORDER BY category ASC", searchStmt, trimmedText);
+        break;
+      case SEARCH_TAGS:
+        dbStmt = sqlite3_mprintf("%s tags LIKE '%%%q%%' ORDER BY tags ASC", searchStmt, trimmedText);
+        break;
+      case SEARCH_FILENAME:
+        dbStmt = sqlite3_mprintf("%s filename LIKE '%%%q%%' ORDER BY filename ASC", searchStmt, trimmedText);
+        break;
+    }
+
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+      sqlite3_free(dbStmt);
+
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while filtering ebook list: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        free(trimmedText);
+      } else {
+        free(trimmedText);
+        return;
+      }
     }
   }
 
@@ -2501,6 +2571,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
   }
 
   free(trimmedText);
+  return;
 }
 
 
