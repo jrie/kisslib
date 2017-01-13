@@ -17,6 +17,7 @@
 
 //GNU
 #include <dirent.h>
+#include <unistd.h> // access
 
 //------------------------------------------------------------------------------
 enum {
@@ -60,9 +61,23 @@ typedef struct argumentStore {
   char **arguments;
 } argumentStore;
 
+typedef struct radioGroup {
+  int key;
+  int count;
+  GtkWidget **items;
+} radioGroup;
+
 //------------------------------------------------------------------------------
 
 void run(GtkApplication*, gpointer);
+void ask_setup_window(sqlite3*);
+void ask_setup_window_open(GtkButton*, gpointer);
+void ask_setup_window_close(GtkButton*, gpointer);
+void ask_reader_window_close(GtkButton*, gpointer);
+void ask_reader_window_save(GtkButton*, gpointer);
+void menuhandle_setup_dialog(GtkMenuItem*, gpointer);
+void open_setup_reader_dialog(GObject*);
+
 void handle_launchCommand(GtkWidget*);
 
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
@@ -165,6 +180,7 @@ int main (int argc, char *argv[]) {
       ); \
       INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', 'format,author'); \
       INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
+      INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
       ", NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -568,8 +584,8 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListCategory), "editable", true, NULL);
   g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
   GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
-  gtk_tree_view_column_set_min_width(columnTitle, 180);
-  gtk_tree_view_column_set_resizable(columnTitle, true);
+  gtk_tree_view_column_set_min_width(columnCategory, 180);
+  gtk_tree_view_column_set_resizable(columnCategory, true);
   gtk_cell_renderer_set_padding(ebookListCategory, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnCategory);
 
@@ -597,6 +613,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnPriority, 100);
+  gtk_tree_view_column_set_max_width(columnPriority, 100);
   gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
   g_signal_connect(G_OBJECT(priorityAdjustment), "value-changed", G_CALLBACK(handle_editing_priority_value), ebookList);
@@ -606,7 +623,6 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
   gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(ebookListRead), true);
   g_signal_connect(G_OBJECT(ebookListRead), "toggled", G_CALLBACK(handle_toggle_read), ebookList);
-  gtk_tree_view_column_set_min_width(columnRead, 60);
   gtk_tree_view_column_set_fixed_width(columnRead, 60);
   gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
@@ -651,16 +667,22 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *opMenu = gtk_menu_new();
   GtkWidget *mOp = gtk_menu_item_new_with_label("Operations");
   GtkWidget *seperator = gtk_separator_menu_item_new();
+  GtkWidget *meSetupLauncher = gtk_menu_item_new_with_label("Setup launcher applications");
   GtkWidget *meSetLauncher = gtk_menu_item_new_with_label("Set launcher applications");
   GtkWidget *meImportFiles = gtk_menu_item_new_with_label("Import files and folders");
   GtkWidget *meEditEntry = gtk_menu_item_new_with_label("Edit ebook details");
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetupLauncher);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetLauncher);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meImportFiles);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meEditEntry);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOp);
+
+  g_object_set_data(G_OBJECT(meSetupLauncher), "db", db);
+  g_signal_connect(G_OBJECT(meSetupLauncher), "activate", G_CALLBACK(menuhandle_setup_dialog), NULL);
 
   g_object_set_data(G_OBJECT(meSetLauncher), "appWindow", window);
   g_object_set_data(G_OBJECT(meSetLauncher), "db", db);
@@ -828,7 +850,412 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
 
   gtk_widget_show_all(window);
+
+
+  //"first_startup" check
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='first_startup' LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot read out startup setting: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    char *startupValue = NULL;
+
+    if (get_db_answer_value(&receiveFromDb, "value", &startupValue)) {
+      if (strcmp(startupValue, "true") == 0) {
+        ask_setup_window(db);
+      }
+    }
+
+    free(startupValue);
+  }
+
+  free_db_answer(&receiveFromDb);
 }
+
+//------------------------------------------------------------------------------
+
+void ask_setup_window(sqlite3 *db) {
+  GtkWidget *askSetupWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_decorated(GTK_WINDOW(askSetupWindow), true);
+
+  gtk_window_set_title(GTK_WINDOW(askSetupWindow), "KISS Ebook Starter - Setup");
+  gtk_window_set_default_size(GTK_WINDOW(askSetupWindow), 640, 260);
+
+  GtkWidget *askBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
+  gtk_container_add(GTK_CONTAINER(askSetupWindow), askBox);
+
+  GtkWidget *labelQuestion= gtk_label_new("Its the first time you start KISS Ebook.\n\nDo you want help to setup starter applications?\n\nKISS Ebook then searches for suitable applications already installed on your computer.\nYou then can select which ebook applications should handle which filetype.\n\nIf you make a mistake, you can later customize the applications in the menu\n\"Operations\" > \"Setup launcher applications\" or in\n\"Operations\" > \"Set launcher applications\" and change your choices.");
+  g_object_set(G_OBJECT(labelQuestion), "margin", 20, NULL);
+  gtk_label_set_justify(GTK_LABEL(labelQuestion), GTK_JUSTIFY_CENTER);
+  gtk_container_add(GTK_CONTAINER(askBox), labelQuestion);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *buttonAskBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonAskBox), "margin", 0, "margin-top", 24, NULL);
+  gtk_container_add(GTK_CONTAINER(askBox), buttonAskBox);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonAskBox), GTK_BUTTONBOX_EDGE);
+
+  GtkWidget *noButton = gtk_button_new_with_label("No, thank you.");
+  gtk_container_add(GTK_CONTAINER(buttonAskBox), noButton);
+  g_object_set_data(G_OBJECT(noButton), "rootWindow", askSetupWindow);
+  g_object_set_data(G_OBJECT(noButton), "db", db);
+  g_signal_connect(G_OBJECT(noButton), "clicked", G_CALLBACK(ask_setup_window_close), NULL);
+
+  GtkWidget *okButton = gtk_button_new_with_label("Please help me!");
+  gtk_container_add(GTK_CONTAINER(buttonAskBox), okButton);
+  g_object_set_data(G_OBJECT(okButton), "rootWindow", askSetupWindow);
+  g_object_set_data(G_OBJECT(okButton), "db", db);
+  g_signal_connect(G_OBJECT(okButton), "clicked", G_CALLBACK(ask_setup_window_open), NULL);
+
+  //----------------------------------------------------------------------------
+  gtk_window_set_type_hint(GTK_WINDOW(askSetupWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
+  gtk_window_activate_focus(GTK_WINDOW(askSetupWindow));
+  gtk_widget_show_all(askSetupWindow);
+
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(askSetupWindow), true);
+  gtk_window_set_modal(GTK_WINDOW(askSetupWindow), true);
+  gtk_window_set_position(GTK_WINDOW(askSetupWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+}
+
+void open_setup_reader_dialog(GObject* dataItem) {
+  gtk_widget_destroy(g_object_get_data(dataItem, "rootWindow"));
+
+  char ebookReaderList[21][32] = {
+    "ebook-viewer", "1;2;3;4", "Calibre",
+    "cr3", "1;2;3;4;", "Cool Reader 3",
+    "evince", "1;", "Evince - Document Viewer",
+    "easy-ebook-viewer", "2;", "Easy eBook Viewer",
+    "fbreader", "2;3;4;", "FBReader ebook reader",
+    "lucidor", "2;", "LUCIDOR ebook reader",
+    "xchm", "4;", "xCHM (X chm viewer)"
+  };
+
+  char pathString[256];
+
+  GtkWidget *askReaderWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_decorated(GTK_WINDOW(askReaderWindow), true);
+
+  gtk_window_set_title(GTK_WINDOW(askReaderWindow), "KISS Ebook Starter - Setup launcher applications");
+  gtk_window_set_default_size(GTK_WINDOW(askReaderWindow), 640, 300);
+
+  GtkWidget *askBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
+  gtk_container_add(GTK_CONTAINER(askReaderWindow), askBox);
+
+  GtkWidget *labelNote= gtk_label_new("Following you see all available formats in KISS Ebook.\nAnd a list of found applications for a ebook filetype.\n\nFrom this list you can choose one to view later on the particular ebook type.\n\nYou can at any time change what program to open a filetype with.\n\nIf you want to see this dialog again, go to \"Operations\" > \"Setup launcher applications\".");
+  g_object_set(G_OBJECT(labelNote), "margin", 20, NULL);
+  gtk_label_set_justify(GTK_LABEL(labelNote), GTK_JUSTIFY_CENTER);
+  gtk_container_add(GTK_CONTAINER(askBox), labelNote);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *grid = gtk_grid_new();
+  g_object_set(G_OBJECT(grid), "margin", 25, NULL);
+  gtk_container_add(GTK_CONTAINER(askBox), grid);
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *labelPDF = gtk_label_new("PDF file handler:");
+  gtk_widget_set_halign(GTK_WIDGET(labelPDF), GTK_ALIGN_START);
+  gtk_grid_attach(GTK_GRID(grid), labelPDF, 0, 0, 5, 1);
+
+  GtkWidget *boxPDF = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  g_object_set(G_OBJECT(boxPDF), "margin", 14, "margin-right", 120, NULL);
+  gtk_grid_attach(GTK_GRID(grid), boxPDF, 0, 1, 5, 1);
+  GtkWidget *radioPDF = gtk_radio_button_new_with_label(NULL, "None");
+  gtk_container_add(GTK_CONTAINER(boxPDF), radioPDF);
+
+
+  GtkWidget *labelEPUB = gtk_label_new("EPUB file handler:");
+  gtk_widget_set_halign(GTK_WIDGET(labelEPUB), GTK_ALIGN_START);
+  gtk_grid_attach(GTK_GRID(grid), labelEPUB, 6, 0, 5, 1);
+
+  GtkWidget *boxEPUB = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  g_object_set(G_OBJECT(boxEPUB), "margin", 14, "margin-right", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), boxEPUB, 6, 1, 5, 1);
+
+  GtkWidget *radioEPUB = gtk_radio_button_new_with_label(NULL, "None");
+  gtk_container_add(GTK_CONTAINER(boxEPUB), radioEPUB);
+
+
+  GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
+  g_object_set(G_OBJECT(labelMOBI), "margin-top", 30, NULL);
+  gtk_widget_set_halign(GTK_WIDGET(labelMOBI), GTK_ALIGN_START);
+  gtk_grid_attach(GTK_GRID(grid), labelMOBI, 0, 2, 5, 1);
+
+  GtkWidget *boxMOBI = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  g_object_set(G_OBJECT(boxMOBI), "margin", 14, "margin-right", 120, NULL);
+  gtk_grid_attach(GTK_GRID(grid), boxMOBI, 0, 3, 5, 1);
+
+  GtkWidget *radioMOBI = gtk_radio_button_new_with_label(NULL, "None");
+  gtk_container_add(GTK_CONTAINER(boxMOBI), radioMOBI);
+
+
+  GtkWidget *labelCHM = gtk_label_new("CHM file handler:");
+  g_object_set(G_OBJECT(labelCHM), "margin-top", 30, NULL);
+  gtk_widget_set_halign(GTK_WIDGET(labelCHM), GTK_ALIGN_START);
+  gtk_grid_attach(GTK_GRID(grid), labelCHM, 6, 2, 3, 1);
+
+  GtkWidget *boxCHM = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  g_object_set(G_OBJECT(boxCHM), "margin", 14, "margin-right", 0, NULL);
+  gtk_grid_attach(GTK_GRID(grid), boxCHM, 6, 3, 5, 1);
+
+  GtkWidget *radioCHM = gtk_radio_button_new_with_label(NULL, "None");
+  gtk_container_add(GTK_CONTAINER(boxCHM), radioCHM);
+
+  //----------------------------------------------------------------------------
+
+  int intVal = 0;
+
+  GtkWidget **radioButtons = NULL;
+  int radioCount = 0;
+  struct radioGroup **radioGroups = malloc(sizeof(radioGroup*) * 4);
+
+  for (int i = 0; i < 4; ++i) {
+    radioGroups[i] = malloc(sizeof(radioGroup));
+    radioGroups[i]->count = 0;
+    radioGroups[i]->items = NULL;
+    radioGroups[i]->key = i + 1;
+  }
+
+  for (int i = 0; i < 7; ++i) {
+    sprintf(pathString, "/usr/bin/%s", ebookReaderList[i*3]);
+    fprintf(stdout, "Checking for: %s ", ebookReaderList[(i*3)+2]);
+    if (access(pathString, X_OK) == 0) {
+      fprintf(stdout, "- available.\n");
+
+      char *strKey = strtok(ebookReaderList[(i*3)+1], ";");
+      intVal = -1;
+      while (strKey != NULL) {
+        intVal = atoi(strKey);
+        switch(intVal) {
+          case 1:
+            radioButtons = (GtkWidget**) realloc(radioButtons, sizeof(GtkWidget*) * (radioCount + 1));
+            radioButtons[radioCount] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radioPDF), ebookReaderList[(i*3)+2]);
+            gtk_container_add(GTK_CONTAINER(boxPDF), radioButtons[radioCount]);
+            break;
+          case 2:
+            radioButtons = (GtkWidget**) realloc(radioButtons, sizeof(GtkWidget*) * (radioCount + 1));
+            radioButtons[radioCount] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radioEPUB), ebookReaderList[(i*3)+2]);
+            gtk_container_add(GTK_CONTAINER(boxEPUB), radioButtons[radioCount]);
+            break;
+          case 3:
+            radioButtons = (GtkWidget**) realloc(radioButtons, sizeof(GtkWidget*) * (radioCount + 1));
+            radioButtons[radioCount] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radioMOBI), ebookReaderList[(i*3)+2]);
+            gtk_container_add(GTK_CONTAINER(boxMOBI), radioButtons[radioCount]);
+            break;
+          case 4:
+            radioButtons = (GtkWidget**) realloc(radioButtons, sizeof(GtkWidget*) * (radioCount + 1));
+            radioButtons[radioCount] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radioCHM), ebookReaderList[(i*3)+2]);
+            gtk_container_add(GTK_CONTAINER(boxCHM), radioButtons[radioCount]);
+            break;
+          default:
+            strKey = strtok(NULL, ";");
+            continue;
+            break;
+        }
+
+
+        radioGroups[intVal-1]->items = (GtkWidget**) realloc(radioGroups[intVal-1]->items, sizeof(GtkWidget*) * (radioGroups[intVal-1]->count + 1));
+        radioGroups[intVal-1]->items[radioGroups[intVal-1]->count] = radioButtons[radioCount];
+        g_object_set_data(G_OBJECT(radioButtons[radioCount]), "group", (void*) radioGroups[intVal-1]);
+        ++radioGroups[intVal-1]->count;
+        ++radioCount;
+
+        strKey = strtok(NULL, ";");
+      }
+    } else {
+      fprintf(stdout, "- not present.\n");
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  GtkWidget *buttonBox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  g_object_set(G_OBJECT(buttonBox), "margin", 0, "margin-top", 24, NULL);
+  gtk_container_add(GTK_CONTAINER(askBox), buttonBox);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
+
+  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel setup");
+  gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
+  g_object_set_data(G_OBJECT(cancelButton), "radioButtons", radioButtons);
+  g_object_set_data(G_OBJECT(cancelButton), "rootWindow", askReaderWindow);
+  g_object_set_data(G_OBJECT(cancelButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
+  g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(ask_reader_window_close), NULL);
+
+  GtkWidget *saveButton = gtk_button_new_with_label("Save choices");
+  gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
+  g_object_set_data(G_OBJECT(saveButton), "radioButtons", radioButtons);
+  g_object_set_data(G_OBJECT(saveButton), "rootWindow", askReaderWindow);
+  g_object_set_data(G_OBJECT(saveButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
+  g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(ask_reader_window_save), radioGroups);
+
+  //----------------------------------------------------------------------------
+  gtk_window_set_type_hint(GTK_WINDOW(askReaderWindow), GDK_WINDOW_TYPE_HINT_DIALOG);
+  gtk_window_activate_focus(GTK_WINDOW(askReaderWindow));
+  gtk_widget_show_all(askReaderWindow);
+
+  //gtk_window_set_transient_for(GTK_WINDOW(g_object_get_data(G_OBJECT(menuitem), "appWindow")), GTK_WINDOW(fileChooserWindow));
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(askReaderWindow), true);
+  gtk_window_set_modal(GTK_WINDOW(askReaderWindow), true);
+  gtk_window_set_position(GTK_WINDOW(askReaderWindow), GTK_WIN_POS_CENTER_ON_PARENT);
+}
+
+//------------------------------------------------------------------------------
+
+void ask_setup_window_open(GtkButton *button, gpointer user_data) {
+  open_setup_reader_dialog(G_OBJECT(button));
+
+}
+
+void ask_setup_window_close(GtkButton *button, gpointer user_data) {
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+
+  char *dbErrorMsg;
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+}
+
+void menuhandle_setup_dialog(GtkMenuItem *menuitem, gpointer user_data) {
+  open_setup_reader_dialog(G_OBJECT(menuitem));
+}
+
+//------------------------------------------------------------------------------
+
+void ask_reader_window_close(GtkButton *button, gpointer user_data) {
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+
+  char *dbErrorMsg;
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  GtkWidget **radioButtons = (GtkWidget**) (g_object_get_data(G_OBJECT(button), "radioButtons"));
+
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
+  free(radioButtons);
+}
+
+void ask_reader_window_save(GtkButton *button, gpointer user_data) {
+  GtkWidget **radioButtons = (GtkWidget**) (g_object_get_data(G_OBJECT(button), "radioButtons"));
+  struct radioGroup **radioGroups = (radioGroup**) user_data;
+
+  char pdfViewerStr[128];
+  char epubViewerStr[128];
+  char mobiViewerStr[128];
+  char chmViewerStr[128];
+
+  char ebookReaderList[21][32] = {
+    "ebook-viewer", "1;2;3;4", "Calibre",
+    "cr3", "1;2;3;4;", "Cool Reader 3",
+    "evince", "1;", "Evince - Document Viewer",
+    "easy-ebook-viewer", "2;", "Easy eBook Viewer",
+    "fbreader", "2;3;4;", "FBReader ebook reader",
+    "lucidor", "2;", "LUCIDOR ebook reader",
+    "xchm", "4;", "xCHM (X chm viewer)"
+  };
+
+  char *dbErrorMsg = NULL;
+  sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+
+  char clearLauncherStmt[34];
+  sprintf(clearLauncherStmt, "DELETE FROM launcher_applications");
+
+  int rc = sqlite3_exec(db, clearLauncherStmt, NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "Unknown SQL error while clearing launcher applications: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  char *pointer = NULL;
+
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < radioGroups[i]->count; ++j) {
+      if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radioGroups[i]->items[j]))) {
+        pointer = NULL;
+
+        switch (radioGroups[i]->key) {
+          case 1:
+            pointer = pdfViewerStr;
+            break;
+          case 2:
+            pointer = epubViewerStr;
+            break;
+          case 3:
+            pointer = mobiViewerStr;
+            break;
+          case 4:
+            pointer = chmViewerStr;
+            break;
+          default:
+            continue;
+            break;
+        }
+
+        if (pointer != NULL) {
+          strcpy(pointer, gtk_button_get_label(GTK_BUTTON(radioGroups[i]->items[j])));
+
+          bool hasReader = false;
+
+          for (int k = 0; k < 7; ++k) {
+            if (strcmp(pointer, ebookReaderList[(k * 3) + 2]) == 0) {
+              strcpy(pointer, ebookReaderList[k * 3]);
+              hasReader = true;
+              break;
+            }
+          }
+
+          if (hasReader) {
+            char *dbStmt = NULL;
+            dbStmt = calloc(sizeof(char), 67 + strlen(pointer));
+            sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(%d, %d, \"%s\", NULL)", radioGroups[i]->key, radioGroups[i]->key, pointer);
+
+            if (dbStmt != NULL) {
+              int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+              if (rc != SQLITE_OK) {
+                if (rc == SQLITE_FULL) {
+                  fprintf(stderr, "Cannot add data to the database, the (temporary) disk is full.");
+                } else {
+                  fprintf(stderr, "Unknown SQL error while adding launcher application: %s\n", dbErrorMsg);
+                }
+
+                sqlite3_free(dbErrorMsg);
+              }
+
+              free(dbStmt);
+            }
+          }
+        }
+
+      }
+
+    }
+
+    free(radioGroups[i]->items);
+  }
+
+  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  free(radioButtons);
+}
+
 
 //------------------------------------------------------------------------------
 // Menu handlers
@@ -1672,7 +2099,6 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(colRead), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colRead, 0, 7, 5, 1);
 
-  // TODO: Add a readout from database for this option
   GtkWidget *importOverwrite = gtk_check_button_new_with_label("Overwrite existing on import");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), false);
   g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 150, NULL);
