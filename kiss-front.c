@@ -137,13 +137,14 @@ void free_db_answer(struct dbAnswer*);
 bool get_db_answer_value(struct dbAnswer*, const char[], char**);
 
 //------------------------------------------------------------------------------
-int main (int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   GtkApplication *app;
   int status;
 
   // SQLite3 code
   sqlite3 *db;
   char *dbErrorMsg = NULL;
+  char *dbStmt = NULL;
 
   int rc = sqlite3_open("kisslib.db", &db);
 
@@ -152,45 +153,52 @@ int main (int argc, char *argv[]) {
     fprintf(stderr, "Error opening sqlite3 database \"kisslib.db\" file. Exiting.");
     return 1;
   } else {
-    rc = sqlite3_exec(db, " \
-      CREATE TABLE IF NOT EXISTS ebook_collection ( \
-        'id' INTEGER PRIMARY KEY ASC, \
-        'format' INTEGER, \
-        'author' TEXT, \
-        'title' TEXT, \
-        'path' TEXT, \
-        'filename' TEXT, \
-        'read' INTEGER DEFAULT 0, \
-        'priority' INTEGER DEFAULT 0, \
-        'category' TEXT DEFAULT NULL, \
-        'tags' TEXT DEFAULT NULL \
-      ); \
-      CREATE TABLE IF NOT EXISTS launcher_applications ( \
-        'id' INTEGER PRIMARY KEY ASC, \
-        'format' INTEGER, \
-        'program' TEXT DEFAULT NULL, \
-        'args' TEXT DEFAULT NULL \
-      ); \
-      CREATE TABLE IF NOT EXISTS options ( \
-        'id' INTEGER PRIMARY KEY ASC, \
-        'option' TEXT, \
-        'type' TEXT, \
-        'value' TEXT \
-      ); \
-      INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', 'format,author'); \
-      INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
-      INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
-      ", NULL, NULL, &dbErrorMsg);
+    dbStmt = sqlite3_mprintf("CREATE TABLE IF NOT EXISTS ebook_collection ( \
+      'id' INTEGER PRIMARY KEY ASC, \
+      'format' INTEGER, \
+      'author' TEXT, \
+      'title' TEXT, \
+      'path' TEXT, \
+      'filename' TEXT, \
+      'read' INTEGER DEFAULT 0, \
+      'priority' INTEGER DEFAULT 0, \
+      'category' TEXT DEFAULT NULL, \
+      'tags' TEXT DEFAULT NULL \
+    ); \
+    CREATE TABLE IF NOT EXISTS launcher_applications ( \
+      'id' INTEGER PRIMARY KEY ASC, \
+      'format' INTEGER, \
+      'program' TEXT DEFAULT NULL, \
+      'args' TEXT DEFAULT NULL \
+    ); \
+    CREATE TABLE IF NOT EXISTS options ( \
+      'id' INTEGER PRIMARY KEY ASC, \
+      'option' TEXT, \
+      'type' TEXT, \
+      'value' TEXT \
+    ); \
+    INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', 'format,author'); \
+    INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
+    INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
+    ");
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-      sqlite3_close(db);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      sqlite3_free(dbStmt);
 
-      if (rc == SQLITE_READONLY) {
-        fprintf(stderr, "Error opening sqlite3 database for writing. Exiting.");
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+        sqlite3_close(db);
+
+        if (rc == SQLITE_READONLY) {
+          fprintf(stderr, "Error opening sqlite3 database for writing. Exiting.");
+        }
+
+        return 1;
       }
-
+    } else {
+      fprintf(stderr, "SQL error, cant setup database...\n");
       return 1;
     }
   }
@@ -202,11 +210,19 @@ int main (int argc, char *argv[]) {
   g_object_set_data(G_OBJECT(app), "db", db);
   status = g_application_run(G_APPLICATION(app), argc, argv);
 
+  int *columnIds = g_object_get_data(G_OBJECT(app), "columnIds");
+  free(columnIds);
+
   g_object_unref(g_object_get_data(G_OBJECT(app), "dataStore"));
   g_object_unref(app);
 
   // Close db
-  sqlite3_exec(db, "VACUUM", NULL, NULL, &dbErrorMsg);
+  rc = sqlite3_exec(db, "VACUUM", NULL, NULL, &dbErrorMsg);
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, could not run 'vacuum', error: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  }
+
   sqlite3_close(db);
 
   return status;
@@ -532,6 +548,17 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkIconInfo *infoOpenIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
   GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
 
+  int *columnIds = malloc(sizeof(int) * N_COLUMNS);
+
+  for (int i = 0; i < N_COLUMNS; ++i) {
+    columnIds[i] = i;
+  }
+
+  g_object_set_data(G_OBJECT(window), "columnIds", columnIds);
+  g_object_set_data(G_OBJECT(app), "columnIds", columnIds);
+
+  GtkTreeViewColumn *columnOpen = NULL;
+
   if (infoIcon == NULL) {
     fprintf(stderr, "Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
     g_error_free(iconError);
@@ -540,9 +567,10 @@ void run(GtkApplication *app, gpointer user_data) {
     g_object_set(G_OBJECT(imageRenderer), "pixbuf", infoIcon, NULL);
     gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
 
-    GtkTreeViewColumn *columnOpen = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
+    columnOpen = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
+    g_object_set_data(G_OBJECT(columnOpen), "id", &columnIds[0]);
+    gtk_tree_view_column_set_min_width(columnOpen, 40);
     gtk_tree_view_column_set_resizable(columnOpen, false);
-    gtk_tree_view_column_set_min_width(columnOpen, 50);
     gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnOpen);
   }
 
@@ -553,6 +581,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnFormat = gtk_tree_view_column_new_with_attributes("Format", ebookListFormat, "text", FORMAT_COLUMN, NULL);
   gtk_tree_view_column_set_resizable(columnFormat, false);
   gtk_tree_view_column_set_min_width(columnFormat, 80);
+  g_object_set_data(G_OBJECT(columnFormat), "id", &columnIds[1]);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnFormat);
 
   GtkCellRenderer *ebookListAuthor = gtk_cell_renderer_text_new();
@@ -562,6 +591,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnAuthor = gtk_tree_view_column_new_with_attributes("Author", ebookListAuthor, "text", AUTHOR_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnAuthor, 110);
   gtk_tree_view_column_set_resizable(columnAuthor, true);
+  g_object_set_data(G_OBJECT(columnAuthor), "id", &columnIds[2]);
   gtk_cell_renderer_set_padding(ebookListAuthor, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnAuthor);
 
@@ -573,6 +603,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_column_set_min_width(columnTitle, 240);
   gtk_tree_view_column_set_expand(columnTitle, true);
   gtk_tree_view_column_set_resizable(columnTitle, true);
+  g_object_set_data(G_OBJECT(columnTitle), "id", &columnIds[3]);
   gtk_cell_renderer_set_padding(ebookListTitle, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTitle);
 
@@ -585,6 +616,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnCategory, 180);
   gtk_tree_view_column_set_resizable(columnCategory, true);
+  g_object_set_data(G_OBJECT(columnCategory), "id", &columnIds[4]);
   gtk_cell_renderer_set_padding(ebookListCategory, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnCategory);
 
@@ -594,6 +626,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes("Tags", ebookListTags, "text", TAGS_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTags, 180);
   gtk_tree_view_column_set_resizable(columnTags, true);
+  g_object_set_data(G_OBJECT(columnTags), "id", &columnIds[5]);
   gtk_cell_renderer_set_padding(ebookListTags, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTags);
 
@@ -601,6 +634,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnFilename = gtk_tree_view_column_new_with_attributes("Filename", ebookListFilename, "text", FILENAME_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnFilename, 180);
   gtk_tree_view_column_set_resizable(columnFilename, true);
+  g_object_set_data(G_OBJECT(columnFilename), "id", &columnIds[6]);
   gtk_cell_renderer_set_padding(ebookListFilename, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnFilename);
 
@@ -613,6 +647,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnPriority, 100);
   gtk_tree_view_column_set_max_width(columnPriority, 100);
+  g_object_set_data(G_OBJECT(columnPriority), "id", &columnIds[7]);
   gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
   g_signal_connect(G_OBJECT(priorityAdjustment), "value-changed", G_CALLBACK(handle_editing_priority_value), ebookList);
@@ -623,6 +658,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(ebookListRead), true);
   g_signal_connect(G_OBJECT(ebookListRead), "toggled", G_CALLBACK(handle_toggle_read), ebookList);
   gtk_tree_view_column_set_fixed_width(columnRead, 60);
+  g_object_set_data(G_OBJECT(columnRead), "id", &columnIds[8]);
   gtk_cell_renderer_set_padding(ebookListRead, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
 
@@ -661,6 +697,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mMain);
 
   g_object_set_data(G_OBJECT(meQuit), "app", app);
+  g_object_set_data(G_OBJECT(meQuit), "appWindow", window);
   g_signal_connect(G_OBJECT(meQuit), "activate", G_CALLBACK(menuhandle_meQuit), NULL);
 
   GtkWidget *opMenu = gtk_menu_new();
@@ -673,7 +710,6 @@ void run(GtkApplication *app, gpointer user_data) {
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetupLauncher);
-  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetLauncher);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meImportFiles);
@@ -799,7 +835,7 @@ void run(GtkApplication *app, gpointer user_data) {
       stringPart = strtok(visibleColumnsString, ",");
       while (stringPart != NULL) {
 
-        for (int i = 0; i < 7; ++i) {
+        for (int i = 0; i < N_COLUMNS; ++i) {
           if (strncmp(stringPart, columnNames[i], strlen(columnNames[i])) == 0) {
             switch (i) {
               case 0:
@@ -884,7 +920,7 @@ void ask_setup_window(sqlite3 *db) {
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askSetupWindow), askBox);
 
-  GtkWidget *labelQuestion= gtk_label_new("Its the first time you start KISS Ebook.\n\nDo you want help to setup starter applications?\n\nKISS Ebook then searches for suitable applications already installed on your computer.\nYou then can select which ebook applications should handle which filetype.\n\nIf you make a mistake, you can later customize the applications in the menu\n\"Operations\" > \"Setup launcher applications\" or in\n\"Operations\" > \"Set launcher applications\" and change your choices.");
+  GtkWidget *labelQuestion= gtk_label_new("It's the first time you start KISS Ebook.\n\nDo you need help to setup launcher applications in order to open ebooks from inside KISS Ebook?\n\nKISS Ebook will search for suitable applications already installed on your computer.\nThen, you can select which ebook application(s) should handle which filetype.\n\nIf you want to change your selections you can, at any time, customize this applications in the menu\n\"Operations\" > \"Setup launcher applications\".");
   g_object_set(G_OBJECT(labelQuestion), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelQuestion), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelQuestion);
@@ -919,7 +955,7 @@ void ask_setup_window(sqlite3 *db) {
 }
 
 void open_setup_reader_dialog(GObject* dataItem) {
-  gtk_widget_destroy(g_object_get_data(dataItem, "rootWindow"));
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(dataItem, "rootWindow")));
 
   char ebookReaderList[21][32] = {
     "ebook-viewer", "1;2;3;4", "Calibre",
@@ -943,7 +979,7 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askReaderWindow), askBox);
 
-  GtkWidget *labelNote= gtk_label_new("Following you see all available formats in KISS Ebook.\nAnd a list of found applications for a ebook filetype.\n\nFrom this list you can choose one to view later on the particular ebook type.\n\nYou can at any time change what program to open a filetype with.\n\nIf you want to see this dialog again, go to \"Operations\" > \"Setup launcher applications\".");
+  GtkWidget *labelNote = gtk_label_new("Below you can see all available ebook file types in KISS Ebook.\nAdditionally, a list of detected applications which are suitable for at least one file type is presented.\n\nYou can choose one application for each ebook type. The application will then be used to open ebooks with this file format.\n\nAfter this initial setup, it's possible to change your selection at any time.\n\nIn case you need a more specific configuration, like a special command to start a viewer with, you can do so in\n\"Operations\" > \"Set launcher applications\"\nand provide parameters.");
   g_object_set(G_OBJECT(labelNote), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelNote), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelNote);
@@ -1084,7 +1120,7 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set_data(G_OBJECT(cancelButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(ask_reader_window_close), NULL);
 
-  GtkWidget *saveButton = gtk_button_new_with_label("Save choices");
+  GtkWidget *saveButton = gtk_button_new_with_label("Save selections");
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
   g_object_set_data(G_OBJECT(saveButton), "radioButtons", radioButtons);
   g_object_set_data(G_OBJECT(saveButton), "rootWindow", askReaderWindow);
@@ -1111,7 +1147,7 @@ void ask_setup_window_open(GtkButton *button, gpointer user_data) {
 
 void ask_setup_window_close(GtkButton *button, gpointer user_data) {
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
-  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
 
   char *dbErrorMsg;
   int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
@@ -1141,7 +1177,7 @@ void ask_reader_window_close(GtkButton *button, gpointer user_data) {
 
   GtkWidget **radioButtons = (GtkWidget**) (g_object_get_data(G_OBJECT(button), "radioButtons"));
 
-  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
   free(radioButtons);
 }
 
@@ -1258,6 +1294,7 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
 //------------------------------------------------------------------------------
 // Menu handlers
 void menuhandle_meQuit(GtkMenuItem *menuitem, gpointer user_data) {
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(menuitem), "appWindow")));
   g_application_quit(G_APPLICATION(g_object_get_data(G_OBJECT(menuitem), "app")));
 }
 
@@ -2799,7 +2836,8 @@ void handle_launchCommand(GtkWidget* widget) {
 }
 
 void handle_row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer user_data) {
-  if (gtk_tree_view_column_get_x_offset(column) != 0) {
+  int *id = g_object_get_data(G_OBJECT(column), "id");
+  if (*id != 0) {
     return;
   }
 
