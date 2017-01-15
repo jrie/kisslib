@@ -143,7 +143,7 @@ bool get_db_answer_value(struct dbAnswer*, const char[], char**);
 //------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
   setlocale( LC_ALL, "" );
-  bindtextdomain("KISSebook", "/usr/share/locale" );
+  bindtextdomain("KISSebook", "");
   textdomain("KISSebook");
 
   GtkApplication *app;
