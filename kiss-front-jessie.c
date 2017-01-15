@@ -19,6 +19,10 @@
 #include <dirent.h>
 #include <unistd.h> // access
 
+// gettext
+#include <locale.h>
+#include <libintl.h>
+
 //------------------------------------------------------------------------------
 enum {
   STARTUP_COLUMN,
@@ -138,6 +142,10 @@ bool get_db_answer_value(struct dbAnswer*, const char[], char**);
 
 //------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
+  setlocale( LC_ALL, "" );
+  bindtextdomain("KISSebook", "/usr/share/locale" );
+  textdomain("KISSebook");
+
   GtkApplication *app;
   int status;
 
@@ -227,7 +235,6 @@ int main(int argc, char *argv[]) {
 
   return status;
 }
-
 
 //------------------------------------------------------------------------------
 int fill_db_answer(void* dbAnswerData, int argc, char **argv, char **columnNames) {
@@ -378,7 +385,7 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
 void run(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *window = gtk_application_window_new(app);
-  gtk_window_set_title(GTK_WINDOW(window), "KISS Ebook Starter");
+  gtk_window_set_title(GTK_WINDOW(window), gettext("KISS Ebook Starter"));
   gtk_window_set_default_size(GTK_WINDOW(window), 640, 400);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
@@ -400,44 +407,6 @@ void run(GtkApplication *app, gpointer user_data) {
     G_TYPE_INT,
     G_TYPE_BOOLEAN
   );
-
-  /*
-  GtkTreeIter iter;
-
-  gtk_list_store_append(dataStore, &iter);
-  gtk_list_store_set(dataStore, &iter,
-    FORMAT_COLUMN, "pdf",
-    AUTHOR_COLUMN, "theSplit",
-    TITLE_COLUMN, "PDFs from day one, more or less ;)",
-    -1
-  );
-
-
-  gtk_list_store_append(dataStore, &iter);
-  gtk_list_store_set(dataStore, &iter,
-    FORMAT_COLUMN, "chm",
-    AUTHOR_COLUMN, "theSplit",
-    TITLE_COLUMN, "No Windows Help here, but available",
-    -1
-  );
-
-  gtk_list_store_append(dataStore, &iter);
-  gtk_list_store_set(dataStore, &iter,
-    FORMAT_COLUMN, "mobi",
-    AUTHOR_COLUMN, "theSplit",
-    TITLE_COLUMN, "First chars of the file",
-    -1
-  );
-
-  gtk_list_store_append(dataStore, &iter);
-  gtk_list_store_set(dataStore, &iter,
-    FORMAT_COLUMN, "epub",
-    AUTHOR_COLUMN, "theSplit",
-    TITLE_COLUMN, "libzip is the way to go!",
-    -1
-  );
-  */
-
 
   //----------------------------------------------------------------------------
   // Read entries from db into list store
@@ -500,7 +469,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *statusBar = gtk_statusbar_new();
   gtk_grid_attach(GTK_GRID(grid), statusBar, 0, 4, 10, 1);
   guint contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
-  gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Welcome to KISS Ebook");
+  gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, gettext("Welcome to KISS Ebook"));
 
   g_signal_connect(G_OBJECT(ebookList), "row-activated", G_CALLBACK (handle_row_activated), NULL);
   g_signal_connect(G_OBJECT(ebookList), "key_press_event", G_CALLBACK (handle_key_press), NULL);
@@ -517,25 +486,27 @@ void run(GtkApplication *app, gpointer user_data) {
   //----------------------------------------------------------------------------
   GtkWidget *searchSelection = gtk_combo_box_text_new();
   g_object_set(G_OBJECT(searchSelection), "margin", 10, "margin-top", 0, NULL);
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Author and title");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Format");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Authors");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Title");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Category");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Tags");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), "Filename");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Author and title"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Format"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Authors"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Title"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Category"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Tags"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(searchSelection), gettext("Filename"));
   gtk_combo_box_set_active(GTK_COMBO_BOX(searchSelection), 0);
   gtk_grid_attach(GTK_GRID(grid), searchSelection, 0, 1, 1, 1);
   g_object_set_data(G_OBJECT(ebookList), "searchSelection", searchSelection);
 
   GtkWidget *searchEntry = gtk_entry_new();
   g_object_set(G_OBJECT(searchEntry), "margin", 10, "margin-top", 0, NULL);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), "Search inside ebook list...");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(searchEntry), gettext("Search inside ebook list..."));
   gtk_entry_set_max_length(GTK_ENTRY(searchEntry), 64);
   gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, "system-search");
   gtk_entry_set_icon_from_icon_name(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
+  gtk_entry_set_icon_activatable(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, true);
   gtk_entry_set_icon_activatable(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, true);
-  gtk_entry_set_icon_tooltip_text(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, "Clear search and restore entries to default.");
+  gtk_entry_set_icon_tooltip_text(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_PRIMARY, gettext("Start search using input"));
+  gtk_entry_set_icon_tooltip_text(GTK_ENTRY(searchEntry), GTK_ENTRY_ICON_SECONDARY, gettext("Clear search and restore entries to default."));
   gtk_grid_attach(GTK_GRID(grid), searchEntry, 1, 1, 9, 1);
   g_signal_connect(G_OBJECT(searchEntry), "icon-press", G_CALLBACK(search_icon_click), ebookList);
   g_signal_connect(G_OBJECT(searchEntry), "activate", G_CALLBACK(search_handle_search), ebookList);
@@ -548,6 +519,8 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkIconInfo *infoOpenIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
   GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
 
+  //----------------------------------------------------------------------------
+
   int *columnIds = malloc(sizeof(int) * N_COLUMNS);
 
   for (int i = 0; i < N_COLUMNS; ++i) {
@@ -556,6 +529,9 @@ void run(GtkApplication *app, gpointer user_data) {
 
   g_object_set_data(G_OBJECT(window), "columnIds", columnIds);
   g_object_set_data(G_OBJECT(app), "columnIds", columnIds);
+  g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
+
+  //----------------------------------------------------------------------------
 
   GtkTreeViewColumn *columnOpen = NULL;
 
@@ -567,7 +543,7 @@ void run(GtkApplication *app, gpointer user_data) {
     g_object_set(G_OBJECT(imageRenderer), "pixbuf", infoIcon, NULL);
     gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
 
-    columnOpen = gtk_tree_view_column_new_with_attributes("Open", imageRenderer, NULL, STARTUP_COLUMN, NULL);
+    columnOpen = gtk_tree_view_column_new_with_attributes(gettext("Open"), imageRenderer, NULL, STARTUP_COLUMN, NULL);
     g_object_set_data(G_OBJECT(columnOpen), "id", &columnIds[0]);
     gtk_tree_view_column_set_min_width(columnOpen, 40);
     gtk_tree_view_column_set_resizable(columnOpen, false);
@@ -578,7 +554,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkCellRenderer *ebookListFormat = gtk_cell_renderer_text_new();
   gtk_cell_renderer_set_padding(ebookListFormat, 5, 8);
 
-  GtkTreeViewColumn *columnFormat = gtk_tree_view_column_new_with_attributes("Format", ebookListFormat, "text", FORMAT_COLUMN, NULL);
+  GtkTreeViewColumn *columnFormat = gtk_tree_view_column_new_with_attributes(gettext("Format"), ebookListFormat, "text", FORMAT_COLUMN, NULL);
   gtk_tree_view_column_set_resizable(columnFormat, false);
   gtk_tree_view_column_set_min_width(columnFormat, 80);
   g_object_set_data(G_OBJECT(columnFormat), "id", &columnIds[1]);
@@ -588,7 +564,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListAuthor), "editable", true, NULL);
   g_signal_connect(G_OBJECT(ebookListAuthor), "edited", G_CALLBACK(handle_editing_author), ebookList);
 
-  GtkTreeViewColumn *columnAuthor = gtk_tree_view_column_new_with_attributes("Author", ebookListAuthor, "text", AUTHOR_COLUMN, NULL);
+  GtkTreeViewColumn *columnAuthor = gtk_tree_view_column_new_with_attributes(gettext("Author"), ebookListAuthor, "text", AUTHOR_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnAuthor, 110);
   gtk_tree_view_column_set_resizable(columnAuthor, true);
   g_object_set_data(G_OBJECT(columnAuthor), "id", &columnIds[2]);
@@ -599,7 +575,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListTitle), "editable", true, NULL);
   g_signal_connect(G_OBJECT(ebookListTitle), "edited", G_CALLBACK(handle_editing_title), ebookList);
 
-  GtkTreeViewColumn *columnTitle = gtk_tree_view_column_new_with_attributes("Title", ebookListTitle, "text", TITLE_COLUMN, NULL);
+  GtkTreeViewColumn *columnTitle = gtk_tree_view_column_new_with_attributes(gettext("Title"), ebookListTitle, "text", TITLE_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTitle, 240);
   gtk_tree_view_column_set_expand(columnTitle, true);
   gtk_tree_view_column_set_resizable(columnTitle, true);
@@ -613,7 +589,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkCellRenderer *ebookListCategory = gtk_cell_renderer_text_new();
   g_object_set(G_OBJECT(ebookListCategory), "editable", true, NULL);
   g_signal_connect(G_OBJECT(ebookListCategory), "edited", G_CALLBACK(handle_editing_category), ebookList);
-  GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes("Category", ebookListCategory, "text", CATEGORY_COLUMN, NULL);
+  GtkTreeViewColumn *columnCategory = gtk_tree_view_column_new_with_attributes(gettext("Category"), ebookListCategory, "text", CATEGORY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnCategory, 180);
   gtk_tree_view_column_set_resizable(columnCategory, true);
   g_object_set_data(G_OBJECT(columnCategory), "id", &columnIds[4]);
@@ -623,7 +599,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkCellRenderer *ebookListTags = gtk_cell_renderer_text_new();
   g_object_set(G_OBJECT(ebookListTags), "editable", true, NULL);
   g_signal_connect(G_OBJECT(ebookListTags), "edited", G_CALLBACK(handle_editing_tags), ebookList);
-  GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes("Tags", ebookListTags, "text", TAGS_COLUMN, NULL);
+  GtkTreeViewColumn *columnTags = gtk_tree_view_column_new_with_attributes(gettext("Tags"), ebookListTags, "text", TAGS_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnTags, 180);
   gtk_tree_view_column_set_resizable(columnTags, true);
   g_object_set_data(G_OBJECT(columnTags), "id", &columnIds[5]);
@@ -631,7 +607,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnTags);
 
   GtkCellRenderer *ebookListFilename = gtk_cell_renderer_text_new();
-  GtkTreeViewColumn *columnFilename = gtk_tree_view_column_new_with_attributes("Filename", ebookListFilename, "text", FILENAME_COLUMN, NULL);
+  GtkTreeViewColumn *columnFilename = gtk_tree_view_column_new_with_attributes(gettext("Filename"), ebookListFilename, "text", FILENAME_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnFilename, 180);
   gtk_tree_view_column_set_resizable(columnFilename, true);
   g_object_set_data(G_OBJECT(columnFilename), "id", &columnIds[6]);
@@ -644,9 +620,8 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set(G_OBJECT(ebookListPriority), "digits", 0, NULL);
   g_object_set(G_OBJECT(ebookListPriority), "adjustment", priorityAdjustment, NULL);
 
-  GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes("Priority", ebookListPriority, "text", PRIORITY_COLUMN, NULL);
+  GtkTreeViewColumn *columnPriority = gtk_tree_view_column_new_with_attributes(gettext("Priority"), ebookListPriority, "text", PRIORITY_COLUMN, NULL);
   gtk_tree_view_column_set_min_width(columnPriority, 100);
-  gtk_tree_view_column_set_max_width(columnPriority, 100);
   g_object_set_data(G_OBJECT(columnPriority), "id", &columnIds[7]);
   gtk_cell_renderer_set_padding(ebookListPriority, 5, 8);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnPriority);
@@ -654,7 +629,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(priorityAdjustment), "changed", G_CALLBACK(handle_editing_priority), ebookList);
 
   GtkCellRenderer *ebookListRead = gtk_cell_renderer_toggle_new();
-  GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes("Read", ebookListRead, "active", READ_COLUMN, NULL);
+  GtkTreeViewColumn *columnRead = gtk_tree_view_column_new_with_attributes(gettext("Read"), ebookListRead, "active", READ_COLUMN, NULL);
   gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(ebookListRead), true);
   g_signal_connect(G_OBJECT(ebookListRead), "toggled", G_CALLBACK(handle_toggle_read), ebookList);
   gtk_tree_view_column_set_fixed_width(columnRead, 60);
@@ -689,8 +664,8 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *menu = gtk_menu_bar_new();
 
   GtkWidget *mainMenu = gtk_menu_new();
-  GtkWidget *mMain = gtk_menu_item_new_with_label("Main");
-  GtkWidget *meQuit = gtk_menu_item_new_with_label("Quit");
+  GtkWidget *mMain = gtk_menu_item_new_with_label(gettext("Main"));
+  GtkWidget *meQuit = gtk_menu_item_new_with_label(gettext("Quit"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mMain), mainMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(mainMenu), meQuit);
@@ -703,10 +678,10 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *opMenu = gtk_menu_new();
   GtkWidget *mOp = gtk_menu_item_new_with_label("Operations");
   GtkWidget *seperator = gtk_separator_menu_item_new();
-  GtkWidget *meSetupLauncher = gtk_menu_item_new_with_label("Setup launcher applications");
-  GtkWidget *meSetLauncher = gtk_menu_item_new_with_label("Set launcher applications");
-  GtkWidget *meImportFiles = gtk_menu_item_new_with_label("Import files and folders");
-  GtkWidget *meEditEntry = gtk_menu_item_new_with_label("Edit ebook details");
+  GtkWidget *meSetupLauncher = gtk_menu_item_new_with_label(gettext("Setup launcher applications"));
+  GtkWidget *meSetLauncher = gtk_menu_item_new_with_label(gettext("Set launcher applications and parameters"));
+  GtkWidget *meImportFiles = gtk_menu_item_new_with_label(gettext("Import files and folders"));
+  GtkWidget *meEditEntry = gtk_menu_item_new_with_label(gettext("Edit ebook details"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetupLauncher);
@@ -742,14 +717,14 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *viewMenu = gtk_menu_new();
   GtkWidget *mView = gtk_menu_item_new_with_label("View");
   GtkWidget *viewColumns = gtk_menu_new();
-  GtkWidget *meSubColumns = gtk_menu_item_new_with_label("Show or hide columns...");
-  GtkWidget *meShowFormat = gtk_check_menu_item_new_with_label("Format");
-  GtkWidget *meShowAuthor = gtk_check_menu_item_new_with_label("Author");
-  GtkWidget *meShowCategory = gtk_check_menu_item_new_with_label("Category");
-  GtkWidget *meShowTags = gtk_check_menu_item_new_with_label("Tags");
-  GtkWidget *meShowFilename = gtk_check_menu_item_new_with_label("Filename");
-  GtkWidget *meShowPriority = gtk_check_menu_item_new_with_label("Priority");
-  GtkWidget *meShowRead = gtk_check_menu_item_new_with_label("Read state");
+  GtkWidget *meSubColumns = gtk_menu_item_new_with_label(gettext("Show or hide columns..."));
+  GtkWidget *meShowFormat = gtk_check_menu_item_new_with_label(gettext("Format"));
+  GtkWidget *meShowAuthor = gtk_check_menu_item_new_with_label(gettext("Author"));
+  GtkWidget *meShowCategory = gtk_check_menu_item_new_with_label(gettext("Category"));
+  GtkWidget *meShowTags = gtk_check_menu_item_new_with_label(gettext("Tags"));
+  GtkWidget *meShowFilename = gtk_check_menu_item_new_with_label(gettext("Filename"));
+  GtkWidget *meShowPriority = gtk_check_menu_item_new_with_label(gettext("Priority"));
+  GtkWidget *meShowRead = gtk_check_menu_item_new_with_label(gettext("Read state"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mView), viewMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), meSubColumns);
@@ -794,10 +769,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
-
   // Menu code end -------------------------------------------------------------
-
-  g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
   //----------------------------------------------------------------------------
   // Retrieve which columns are shown
@@ -913,14 +885,14 @@ void ask_setup_window(sqlite3 *db) {
   GtkWidget *askSetupWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(askSetupWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(askSetupWindow), "KISS Ebook Starter - Setup");
+  gtk_window_set_title(GTK_WINDOW(askSetupWindow), gettext("KISS Ebook Starter - Setup"));
   gtk_window_set_default_size(GTK_WINDOW(askSetupWindow), 640, 260);
 
   GtkWidget *askBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askSetupWindow), askBox);
 
-  GtkWidget *labelQuestion= gtk_label_new("It's the first time you start KISS Ebook.\n\nDo you need help to setup launcher applications in order to open ebooks from inside KISS Ebook?\n\nKISS Ebook will search for suitable applications already installed on your computer.\nThen, you can select which ebook application(s) should handle which filetype.\n\nIf you want to change your selections you can, at any time, customize this applications in the menu\n\"Operations\" > \"Setup launcher applications\".");
+  GtkWidget *labelQuestion= gtk_label_new(gettext("It's the first time you start KISS Ebook.\n\nDo you need help to setup launcher applications in order to open ebooks from inside KISS Ebook?\n\nKISS Ebook will search for suitable applications already installed on your computer.\nThen, you can select which ebook application(s) should handle which filetype.\n\nIf you want to change your selections you can, at any time, customize this applications in the menu\n\"Operations\" > \"Setup launcher applications\"."));
   g_object_set(G_OBJECT(labelQuestion), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelQuestion), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelQuestion);
@@ -932,13 +904,13 @@ void ask_setup_window(sqlite3 *db) {
   gtk_container_add(GTK_CONTAINER(askBox), buttonAskBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonAskBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *noButton = gtk_button_new_with_label("No, thank you.");
+  GtkWidget *noButton = gtk_button_new_with_label(gettext("No, thank you."));
   gtk_container_add(GTK_CONTAINER(buttonAskBox), noButton);
   g_object_set_data(G_OBJECT(noButton), "rootWindow", askSetupWindow);
   g_object_set_data(G_OBJECT(noButton), "db", db);
   g_signal_connect(G_OBJECT(noButton), "clicked", G_CALLBACK(ask_setup_window_close), NULL);
 
-  GtkWidget *okButton = gtk_button_new_with_label("Please help me!");
+  GtkWidget *okButton = gtk_button_new_with_label(gettext("Please help me!"));
   gtk_container_add(GTK_CONTAINER(buttonAskBox), okButton);
   g_object_set_data(G_OBJECT(okButton), "rootWindow", askSetupWindow);
   g_object_set_data(G_OBJECT(okButton), "db", db);
@@ -955,9 +927,24 @@ void ask_setup_window(sqlite3 *db) {
 }
 
 void open_setup_reader_dialog(GObject* dataItem) {
-  gtk_widget_destroy(g_object_get_data(dataItem, "rootWindow"));
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(dataItem, "rootWindow")));
 
-  char ebookReaderList[21][32] = {
+  char calibreStr[64];
+  strcpy(calibreStr, gettext("Calibre"));
+  char coolreaderStr[64];
+  strcpy(coolreaderStr, gettext("Cool Reader 3"));
+  char evinceStr[64];
+  strcpy(evinceStr, gettext("Evince - Document Viewer"));
+  char easyebookStr[64];
+  strcpy(easyebookStr, gettext("Easy eBook Viewer"));
+  char fbreaderStr[64];
+  strcpy(fbreaderStr, gettext("FBReader ebook reader"));
+  char lucidorStr[64];
+  strcpy(lucidorStr, gettext("LUCIDOR ebook reader"));
+  char xchmStr[64];
+  strcpy(xchmStr, gettext("xCHM (X chm viewer)"));
+
+  char ebookReaderList[21][64] = {
     "ebook-viewer", "1;2;3;4", "Calibre",
     "cr3", "1;2;3;4;", "Cool Reader 3",
     "evince", "1;", "Evince - Document Viewer",
@@ -967,19 +954,27 @@ void open_setup_reader_dialog(GObject* dataItem) {
     "xchm", "4;", "xCHM (X chm viewer)"
   };
 
+  strcpy(ebookReaderList[2], calibreStr);
+  strcpy(ebookReaderList[5], coolreaderStr);
+  strcpy(ebookReaderList[8], evinceStr);
+  strcpy(ebookReaderList[11], easyebookStr);
+  strcpy(ebookReaderList[14], fbreaderStr);
+  strcpy(ebookReaderList[17], lucidorStr);
+  strcpy(ebookReaderList[20], xchmStr);
+
   char pathString[256];
 
   GtkWidget *askReaderWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(askReaderWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(askReaderWindow), "KISS Ebook Starter - Setup launcher applications");
+  gtk_window_set_title(GTK_WINDOW(askReaderWindow), gettext("KISS Ebook Starter - Setup launcher applications"));
   gtk_window_set_default_size(GTK_WINDOW(askReaderWindow), 640, 300);
 
   GtkWidget *askBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askReaderWindow), askBox);
 
-  GtkWidget *labelNote = gtk_label_new("Below you can see all available ebook file types in KISS Ebook.\nAdditionally, a list of detected applications which are suitable for at least one file type is presented.\n\nYou can choose one application for each ebook type. The application will then be used to open ebooks with this file format.\n\nAfter this initial setup, it's possible to change your selection at any time.\n\nIn case you need a more specific configuration, like a special command to start a viewer with, you can do so in\n\"Operations\" > \"Set launcher applications\"\nand provide parameters.");
+  GtkWidget *labelNote = gtk_label_new(gettext("Below you can see all available ebook file types in KISS Ebook.\nAdditionally, a list of detected applications which are suitable for at least one file type is presented.\n\nYou can choose one application for each ebook type. The application will then be used to open ebooks with this file format.\n\nAfter this initial setup, it's possible to change your selection at any time.\n\nIn case you need a more specific configuration, like a special command to start a viewer with, you can do so in\n\"Operations\" > \"Set launcher applications\"\nand provide parameters."));
   g_object_set(G_OBJECT(labelNote), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelNote), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelNote);
@@ -990,20 +985,23 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(grid), "margin", 25, NULL);
   gtk_container_add(GTK_CONTAINER(askBox), grid);
 
+  char noneStr[32];
+  strcpy(noneStr, gettext("None"));
+
   //----------------------------------------------------------------------------
 
-  GtkWidget *labelPDF = gtk_label_new("PDF file handler:");
+GtkWidget *labelPDF = gtk_label_new(gettext("PDF file handler:"));
   gtk_widget_set_halign(GTK_WIDGET(labelPDF), GTK_ALIGN_START);
   gtk_grid_attach(GTK_GRID(grid), labelPDF, 0, 0, 5, 1);
 
   GtkWidget *boxPDF = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
   g_object_set(G_OBJECT(boxPDF), "margin", 14, "margin-right", 120, NULL);
   gtk_grid_attach(GTK_GRID(grid), boxPDF, 0, 1, 5, 1);
-  GtkWidget *radioPDF = gtk_radio_button_new_with_label(NULL, "None");
+  GtkWidget *radioPDF = gtk_radio_button_new_with_label(NULL, noneStr);
   gtk_container_add(GTK_CONTAINER(boxPDF), radioPDF);
 
 
-  GtkWidget *labelEPUB = gtk_label_new("EPUB file handler:");
+  GtkWidget *labelEPUB = gtk_label_new(gettext("EPUB file handler:"));
   gtk_widget_set_halign(GTK_WIDGET(labelEPUB), GTK_ALIGN_START);
   gtk_grid_attach(GTK_GRID(grid), labelEPUB, 6, 0, 5, 1);
 
@@ -1011,11 +1009,11 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(boxEPUB), "margin", 14, "margin-right", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), boxEPUB, 6, 1, 5, 1);
 
-  GtkWidget *radioEPUB = gtk_radio_button_new_with_label(NULL, "None");
+  GtkWidget *radioEPUB = gtk_radio_button_new_with_label(NULL, noneStr);
   gtk_container_add(GTK_CONTAINER(boxEPUB), radioEPUB);
 
 
-  GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
+  GtkWidget *labelMOBI = gtk_label_new(gettext("MOBI file handler:"));
   g_object_set(G_OBJECT(labelMOBI), "margin-top", 30, NULL);
   gtk_widget_set_halign(GTK_WIDGET(labelMOBI), GTK_ALIGN_START);
   gtk_grid_attach(GTK_GRID(grid), labelMOBI, 0, 2, 5, 1);
@@ -1024,11 +1022,11 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(boxMOBI), "margin", 14, "margin-right", 120, NULL);
   gtk_grid_attach(GTK_GRID(grid), boxMOBI, 0, 3, 5, 1);
 
-  GtkWidget *radioMOBI = gtk_radio_button_new_with_label(NULL, "None");
+  GtkWidget *radioMOBI = gtk_radio_button_new_with_label(NULL, noneStr);
   gtk_container_add(GTK_CONTAINER(boxMOBI), radioMOBI);
 
 
-  GtkWidget *labelCHM = gtk_label_new("CHM file handler:");
+  GtkWidget *labelCHM = gtk_label_new(gettext("CHM file handler:"));
   g_object_set(G_OBJECT(labelCHM), "margin-top", 30, NULL);
   gtk_widget_set_halign(GTK_WIDGET(labelCHM), GTK_ALIGN_START);
   gtk_grid_attach(GTK_GRID(grid), labelCHM, 6, 2, 3, 1);
@@ -1037,7 +1035,7 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(boxCHM), "margin", 14, "margin-right", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), boxCHM, 6, 3, 5, 1);
 
-  GtkWidget *radioCHM = gtk_radio_button_new_with_label(NULL, "None");
+  GtkWidget *radioCHM = gtk_radio_button_new_with_label(NULL, noneStr);
   gtk_container_add(GTK_CONTAINER(boxCHM), radioCHM);
 
   //----------------------------------------------------------------------------
@@ -1113,14 +1111,14 @@ void open_setup_reader_dialog(GObject* dataItem) {
   gtk_container_add(GTK_CONTAINER(askBox), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel setup");
+  GtkWidget *cancelButton = gtk_button_new_with_label(gettext("Cancel setup"));
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "radioButtons", radioButtons);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", askReaderWindow);
   g_object_set_data(G_OBJECT(cancelButton), "db", g_object_get_data(G_OBJECT(dataItem), "db"));
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(ask_reader_window_close), NULL);
 
-  GtkWidget *saveButton = gtk_button_new_with_label("Save selections");
+  GtkWidget *saveButton = gtk_button_new_with_label(gettext("Save selections"));
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
   g_object_set_data(G_OBJECT(saveButton), "radioButtons", radioButtons);
   g_object_set_data(G_OBJECT(saveButton), "rootWindow", askReaderWindow);
@@ -1147,7 +1145,7 @@ void ask_setup_window_open(GtkButton *button, gpointer user_data) {
 
 void ask_setup_window_close(GtkButton *button, gpointer user_data) {
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
-  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
 
   char *dbErrorMsg;
   int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
@@ -1190,7 +1188,22 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
   char mobiViewerStr[128];
   char chmViewerStr[128];
 
-  char ebookReaderList[21][32] = {
+  char calibreStr[64];
+  strcpy(calibreStr, gettext("Calibre"));
+  char coolreaderStr[64];
+  strcpy(coolreaderStr, gettext("Cool Reader 3"));
+  char evinceStr[64];
+  strcpy(evinceStr, gettext("Evince - Document Viewer"));
+  char easyebookStr[64];
+  strcpy(easyebookStr, gettext("Easy eBook Viewer"));
+  char fbreaderStr[64];
+  strcpy(fbreaderStr, gettext("FBReader ebook reader"));
+  char lucidorStr[64];
+  strcpy(lucidorStr, gettext("LUCIDOR ebook reader"));
+  char xchmStr[64];
+  strcpy(xchmStr, gettext("xCHM (X chm viewer)"));
+
+  char ebookReaderList[21][64] = {
     "ebook-viewer", "1;2;3;4", "Calibre",
     "cr3", "1;2;3;4;", "Cool Reader 3",
     "evince", "1;", "Evince - Document Viewer",
@@ -1199,6 +1212,14 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
     "lucidor", "2;", "LUCIDOR ebook reader",
     "xchm", "4;", "xCHM (X chm viewer)"
   };
+
+  strcpy(ebookReaderList[2], calibreStr);
+  strcpy(ebookReaderList[5], coolreaderStr);
+  strcpy(ebookReaderList[8], evinceStr);
+  strcpy(ebookReaderList[11], easyebookStr);
+  strcpy(ebookReaderList[14], fbreaderStr);
+  strcpy(ebookReaderList[17], lucidorStr);
+  strcpy(ebookReaderList[20], xchmStr);
 
   char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
@@ -1308,7 +1329,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *launcherWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(launcherWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(launcherWindow), "KISS Ebook Starter - Set launcher applications");
+  gtk_window_set_title(GTK_WINDOW(launcherWindow), gettext("KISS Ebook Starter - Set launcher applications"));
   gtk_window_set_default_size(GTK_WINDOW(launcherWindow), 640, 330);
 
   //----------------------------------------------------------------------------
@@ -1381,49 +1402,49 @@ void open_launcher_window(GObject* menuitem) {
 
   //----------------------------------------------------------------------------
 
-  GtkWidget *labelPDF = gtk_label_new("PDF file handler:");
-  g_object_set(G_OBJECT(labelPDF), "margin-top", 6, NULL);
+  GtkWidget *labelPDF = gtk_label_new(gettext("PDF file handler:"));
   gtk_widget_set_halign(GTK_WIDGET(labelPDF), GTK_ALIGN_START);
+  g_object_set(G_OBJECT(labelPDF), "margin-top", 6, "margin-left", 6, NULL);
   gtk_container_add(GTK_CONTAINER(box), labelPDF);
 
   GtkWidget *entryPDF = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), "Name of the application to launch .pdf files.");
-  gtk_widget_set_tooltip_text(entryPDF, "Application to open .pdf files. This could be: \"evince\"");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), gettext("Name of the application to launch .pdf files."));
+  gtk_widget_set_tooltip_text(entryPDF, gettext("Application and or optional parameters to open .pdf files. This could be: \"evince\" and as parameter \"-f\" to open evince in fullscreen."));
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
 
-  GtkWidget *labelEPUB = gtk_label_new("EPUB file handler:");
-  g_object_set(G_OBJECT(labelEPUB), "margin-top", 12, NULL);
+  GtkWidget *labelEPUB = gtk_label_new(gettext("EPUB file handler:"));
+  g_object_set(G_OBJECT(labelEPUB), "margin-top", 12, "margin-left", 6, NULL);
   gtk_widget_set_halign(GTK_WIDGET(labelEPUB), GTK_ALIGN_START);
   gtk_container_add(GTK_CONTAINER(box), labelEPUB);
 
   GtkWidget *entryEPUB = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), "Name of the application to launch .epub files.");
-  gtk_widget_set_tooltip_text(entryEPUB, "Application to open .epub files. This could be: \"fbreader\"");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), gettext("Name of the application to launch .epub files."));
+  gtk_widget_set_tooltip_text(entryEPUB, gettext("Application and or optional parameters to open .epub files. This could be: \"fbreader\""));
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
 
-  GtkWidget *labelMOBI = gtk_label_new("MOBI file handler:");
-  g_object_set(G_OBJECT(labelMOBI), "margin-top", 12, NULL);
+  GtkWidget *labelMOBI = gtk_label_new(gettext("MOBI file handler:"));
   gtk_widget_set_halign(GTK_WIDGET(labelMOBI), GTK_ALIGN_START);
+  g_object_set(G_OBJECT(labelMOBI), "margin-top", 12, "margin-left", 6, NULL);
   gtk_container_add(GTK_CONTAINER(box), labelMOBI);
 
   GtkWidget *entryMOBI = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), "Name of the application to launch .mobi files.");
-  gtk_widget_set_tooltip_text(entryMOBI, "Application to open .mobi files. This could be: \"fbreader\"");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), gettext("Name of the application to launch .mobi files."));
+  gtk_widget_set_tooltip_text(entryMOBI, gettext("Application and or optional parameters to open .mobi files. This could be: \"cr3\" for Cool Reader 3"));
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
 
 
-  GtkWidget *labelCHM= gtk_label_new("CHM file handler:");
-  g_object_set(G_OBJECT(labelCHM), "margin-top", 12, NULL);
+  GtkWidget *labelCHM= gtk_label_new(gettext("CHM file handler:"));
   gtk_widget_set_halign(GTK_WIDGET(labelCHM), GTK_ALIGN_START);
+  g_object_set(G_OBJECT(labelCHM), "margin-top", 12, "margin-left", 6, NULL);
   gtk_container_add(GTK_CONTAINER(box), labelCHM);
 
   GtkWidget *entryCHM = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), "Name of the application to launch .chm files.");
-  gtk_widget_set_tooltip_text(entryCHM, "Application to open .chm files. This could be: \"xchm\"");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), gettext("Name of the application to launch .chm files."));
+  gtk_widget_set_tooltip_text(entryCHM, gettext("Application and optional parameters to open .chm files. This could be: \"xchm\""));
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
 
   if (pdfHandler != NULL) {
@@ -1498,12 +1519,12 @@ void open_launcher_window(GObject* menuitem) {
   gtk_container_add(GTK_CONTAINER(box), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  GtkWidget *cancelButton = gtk_button_new_with_label(gettext("Cancel"));
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", launcherWindow);
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(launcherWindow_close), launcherWindow);
 
-  GtkWidget *saveButton = gtk_button_new_with_label("Save");
+  GtkWidget *saveButton = gtk_button_new_with_label(gettext("Save"));
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
   g_object_set_data(G_OBJECT(saveButton), "entryPDF", entryPDF);
   g_object_set_data(G_OBJECT(saveButton), "entryEPUB", entryEPUB);
@@ -1750,29 +1771,24 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *editWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(editWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(editWindow), "KISS Ebook Starter - Edit ebook details");
+  gtk_window_set_title(GTK_WINDOW(editWindow), gettext("KISS Ebook Starter - Edit ebook details"));
   gtk_window_set_default_size(GTK_WINDOW(editWindow), 640, 400);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
   g_object_set(G_OBJECT(box), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(editWindow), box);
 
-  GtkWidget *labelTitle = gtk_label_new("Title:");
-  gtk_widget_set_halign(GTK_WIDGET(labelTitle), GTK_ALIGN_START);
-  GtkWidget *labelAuthor = gtk_label_new("Author:");
-  gtk_widget_set_halign(GTK_WIDGET(labelAuthor), GTK_ALIGN_START);
-  GtkWidget *labelFileName = gtk_label_new("Filename:");
-  gtk_widget_set_halign(GTK_WIDGET(labelFileName), GTK_ALIGN_START);
-  GtkWidget *labelPath = gtk_label_new("Path:");
-  gtk_widget_set_halign(GTK_WIDGET(labelPath), GTK_ALIGN_START);
-  GtkWidget *labelFormat = gtk_label_new("Format:");
-  gtk_widget_set_halign(GTK_WIDGET(labelFormat), GTK_ALIGN_START);
+  GtkWidget *labelTitle = gtk_label_new(gettext("Title:"));
+  GtkWidget *labelAuthor = gtk_label_new(gettext("Author:"));
+  GtkWidget *labelFileName = gtk_label_new(gettext("Filename:"));
+  GtkWidget *labelPath = gtk_label_new(gettext("Path:"));
+  GtkWidget *labelFormat = gtk_label_new(gettext("Format:"));
 
-  g_object_set(G_OBJECT(labelTitle), "margin-top", 0, NULL);
-  g_object_set(G_OBJECT(labelAuthor), "margin-top", 12, NULL);
-  g_object_set(G_OBJECT(labelFormat), "margin-top", 12, NULL);
-  g_object_set(G_OBJECT(labelPath), "margin-top", 12, NULL);
-  g_object_set(G_OBJECT(labelFileName), "margin-top", 12, NULL);
+  gtk_widget_set_halign(GTK_WIDGET(labelTitle), GTK_ALIGN_START);
+  gtk_widget_set_halign(GTK_WIDGET(labelAuthor), GTK_ALIGN_START);
+  gtk_widget_set_halign(GTK_WIDGET(labelFileName), GTK_ALIGN_START);
+  gtk_widget_set_halign(GTK_WIDGET(labelPath), GTK_ALIGN_START);
+  gtk_widget_set_halign(GTK_WIDGET(labelFormat), GTK_ALIGN_START);
 
   g_object_set(G_OBJECT(labelPath), "margin-top", 12, "margin-left", 6, NULL);
   g_object_set(G_OBJECT(labelFileName), "margin-top", 12, "margin-left", 6, NULL);
@@ -1783,29 +1799,30 @@ void open_edit_window(GObject *dataItem) {
   GtkWidget *entryTitle = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryTitle), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryTitle), "Title");
-  gtk_widget_set_tooltip_text(entryTitle, "The title of the ebook displayed in KISS Ebook.");
+  gtk_widget_set_tooltip_text(entryTitle, gettext("The title of the ebook displayed in KISS Ebook."));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryTitle), gettext("Title"));
 
   GtkWidget *entryAuthor = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryAuthor), 255);
-  gtk_widget_set_tooltip_text(entryAuthor, "The ebook author(s) displayed in KISS Ebook.");
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), "Author(s)");
+  gtk_widget_set_tooltip_text(entryAuthor, gettext("The ebook author(s) displayed in KISS Ebook."));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryAuthor), gettext("Author(s)"));
 
   GtkWidget *entryFileName = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFileName), 255);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFileName), "Filename");
-  gtk_widget_set_tooltip_text(entryFileName, "The file name which is not changeable.");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFileName), gettext("Filename"));
+  gtk_widget_set_tooltip_text(entryFileName, gettext("The file name which is not changeable."));
   g_object_set(G_OBJECT(entryFileName), "editable", false, NULL);
 
   GtkWidget *entryPath = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPath), 1024);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), "Complete path");
-  gtk_widget_set_tooltip_text(entryPath, "Complete path, including the filename. This is not changeable.");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryPath), gettext("Complete path"));
+  gtk_widget_set_tooltip_text(entryPath, gettext("Complete path, including the filename. This is not changeable."));
   g_object_set(G_OBJECT(entryPath), "editable", false, NULL);
 
   GtkWidget *entryFormat = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryFormat), 5);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFormat), "Format");
-  gtk_widget_set_tooltip_text(entryFormat, "The ebook format which is not changeable.");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entryFormat), gettext("Format"));
+  gtk_widget_set_tooltip_text(entryFormat, gettext("The ebook format which is not changeable."));
   g_object_set(G_OBJECT(entryFormat), "editable", false, NULL);
 
   gtk_container_add(GTK_CONTAINER(box), labelTitle);
@@ -1824,12 +1841,12 @@ void open_edit_window(GObject *dataItem) {
   gtk_container_add(GTK_CONTAINER(box), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  GtkWidget *cancelButton = gtk_button_new_with_label(gettext("Cancel"));
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", editWindow);
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(edit_entry_close), NULL);
 
-  GtkWidget *saveButton = gtk_button_new_with_label("Save data");
+  GtkWidget *saveButton = gtk_button_new_with_label(gettext("Save data"));
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
 
   g_object_set_data(G_OBJECT(saveButton), "rootWindow", editWindow);
@@ -2084,7 +2101,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   GtkWidget *optionsWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(optionsWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(optionsWindow), "KISS Ebook Starter - Options");
+  gtk_window_set_title(GTK_WINDOW(optionsWindow), gettext("KISS Ebook Starter - Options"));
   gtk_window_set_default_size(GTK_WINDOW(optionsWindow), 640, 300);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -2094,47 +2111,47 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   GtkWidget *grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(box), grid);
 
-  GtkWidget *labelColumns= gtk_label_new("Visible columns:");
+  GtkWidget *labelColumns= gtk_label_new(gettext("Visible columns:"));
   gtk_widget_set_halign(GTK_WIDGET(labelColumns), GTK_ALIGN_START);
   g_object_set(G_OBJECT(labelColumns), "margin-top", 0, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), labelColumns, 0, 0, 5, 1);
 
-  GtkWidget *colFormat = gtk_check_button_new_with_label("Format");
+  GtkWidget *colFormat = gtk_check_button_new_with_label(gettext("Format"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colFormat), gtk_check_menu_item_get_active(meShowFormat));
   g_object_set(G_OBJECT(colFormat), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colFormat, 0, 1, 5, 1);
 
-  GtkWidget *colAuthor = gtk_check_button_new_with_label("Author");
+  GtkWidget *colAuthor = gtk_check_button_new_with_label(gettext("Author"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colAuthor), gtk_check_menu_item_get_active(meShowAuthor));
   g_object_set(G_OBJECT(colAuthor), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colAuthor, 0, 2, 5, 1);
 
-  GtkWidget *colCategory = gtk_check_button_new_with_label("Category");
+  GtkWidget *colCategory = gtk_check_button_new_with_label(gettext("Category"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colCategory), gtk_check_menu_item_get_active(meShowCategory));
   g_object_set(G_OBJECT(colCategory), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colCategory, 0, 3, 5, 1);
 
-  GtkWidget *colTags = gtk_check_button_new_with_label("Tags");
+  GtkWidget *colTags = gtk_check_button_new_with_label(gettext("Tags"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colTags), gtk_check_menu_item_get_active(meShowTags));
   g_object_set(G_OBJECT(colTags), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colTags, 0, 4, 5, 1);
 
-  GtkWidget *colFilename = gtk_check_button_new_with_label("Filename");
+  GtkWidget *colFilename = gtk_check_button_new_with_label(gettext("Filename"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colFilename), gtk_check_menu_item_get_active(meShowFilename));
   g_object_set(G_OBJECT(colFilename), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colFilename, 0, 5, 5, 1);
 
-  GtkWidget *colPriority = gtk_check_button_new_with_label("Priority");
+  GtkWidget *colPriority = gtk_check_button_new_with_label(gettext("Priority"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colPriority), gtk_check_menu_item_get_active(meShowPriority));
   g_object_set(G_OBJECT(colPriority), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colPriority, 0, 6, 5, 1);
 
-  GtkWidget *colRead = gtk_check_button_new_with_label("Read status");
+  GtkWidget *colRead = gtk_check_button_new_with_label(gettext("Read status"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(colRead), gtk_check_menu_item_get_active(meShowRead));
   g_object_set(G_OBJECT(colRead), "margin-top", 10, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), colRead, 0, 7, 5, 1);
 
-  GtkWidget *importOverwrite = gtk_check_button_new_with_label("Overwrite existing on import");
+  GtkWidget *importOverwrite = gtk_check_button_new_with_label(gettext("Overwrite existing on import"));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), false);
   g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 150, NULL);
   gtk_grid_attach(GTK_GRID(grid), importOverwrite, 7, 1, 3, 1);
@@ -2154,12 +2171,12 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   gtk_container_add(GTK_CONTAINER(box), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  GtkWidget *cancelButton = gtk_button_new_with_label(gettext("Cancel"));
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", optionsWindow);
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(optionsWindow_close), NULL);
 
-  GtkWidget *saveButton = gtk_button_new_with_label("Save");
+  GtkWidget *saveButton = gtk_button_new_with_label(gettext("Save"));
   gtk_container_add(GTK_CONTAINER(buttonBox), saveButton);
   g_object_set_data(G_OBJECT(saveButton), "rootWindow", optionsWindow);
   g_object_set_data(G_OBJECT(saveButton), "meShowFormat", meShowFormat);
@@ -2342,7 +2359,7 @@ void open_importFiles_window(GObject *menuitem) {
   GtkWidget *fileChooserWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_decorated(GTK_WINDOW(fileChooserWindow), true);
 
-  gtk_window_set_title(GTK_WINDOW(fileChooserWindow), "KISS Ebook Starter - Import files and folders");
+  gtk_window_set_title(GTK_WINDOW(fileChooserWindow), gettext("KISS Ebook Starter - Import files and folders"));
   gtk_window_set_default_size(GTK_WINDOW(fileChooserWindow), 640, 400);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -2351,7 +2368,7 @@ void open_importFiles_window(GObject *menuitem) {
   GtkWidget *chooser = gtk_file_chooser_widget_new(GTK_FILE_CHOOSER_ACTION_OPEN);
 
   GtkFileFilter *inputFilter = gtk_file_filter_new();
-  gtk_file_filter_set_name(inputFilter, "All supported ebook formats");
+  gtk_file_filter_set_name(inputFilter, gettext("All supported ebook formats"));
   gtk_file_filter_add_pattern(inputFilter, "*.epub");
   gtk_file_filter_add_pattern(inputFilter, "*.pdf");
   gtk_file_filter_add_pattern(inputFilter, "*.mobi");
@@ -2387,7 +2404,7 @@ void open_importFiles_window(GObject *menuitem) {
   gtk_container_add(GTK_CONTAINER(box), buttonBox);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(buttonBox), GTK_BUTTONBOX_EDGE);
 
-  GtkWidget *cancelButton = gtk_button_new_with_label("Cancel");
+  GtkWidget *cancelButton = gtk_button_new_with_label(gettext("Cancel"));
   gtk_container_add(GTK_CONTAINER(buttonBox), cancelButton);
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", fileChooserWindow);
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(fileChooser_close), NULL);
@@ -2529,11 +2546,13 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
     clearAndUpdateDataStore(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)), db);
   }
 
-  char errorString[64];
-  sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
+  char errorString[128];
+  sprintf(errorString, "%u %s", filesError, filesError == 1 ? gettext("error.") : gettext("errors."));
 
-  sprintf(message, "[STATUS] Done importing %u %s%s%s",
-    filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
+  char importDoneString[128];
+  strcpy(importDoneString, gettext("[STATUS] Done importing"));
+  sprintf(message, "%s %u %s%s%s",
+    importDoneString, filesAdded, filesAdded == 1 ? gettext("file") : gettext("files"), filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
 
   contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
   gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
@@ -2648,11 +2667,14 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
       clearAndUpdateDataStore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(widget))), db);
     }
 
-    char errorString[64];
-    sprintf(errorString, "%u %s", filesError, filesError == 1 ? "error." : "errors.");
 
-    sprintf(message, "[STATUS] Done importing %u %s%s%s",
-      filesAdded, filesAdded == 1 ? "file" : "files", filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
+    char errorString[128];
+    sprintf(errorString, "%u %s", filesError, filesError == 1 ? gettext("error.") : gettext("errors."));
+
+    char importDoneString[128];
+    strcpy(importDoneString, gettext("[STATUS] Done importing"));
+    sprintf(message, "%s %u %s%s%s",
+      importDoneString, filesAdded, filesAdded == 1 ? gettext("file") : gettext("files"), filesError != 0 ? ", " : ".", filesError != 0 ? errorString : "");
 
     gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
     contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
@@ -2762,7 +2784,7 @@ void handle_launchCommand(GtkWidget* widget) {
       gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
       contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
-      gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, "Please set a laucher application first to open a file.");
+      gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, gettext("Please set a laucher application first to open a file."));
 
       free(filePath);
       free_db_answer(&receiveFromDb);
@@ -3433,7 +3455,10 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
   // Update the UI ---------------------------------------------------------
   if (showStatus && statusBar != NULL) {
-    sprintf(message, "[PARSING] %s", cleanedFileName);
+    char parsingStr[64];
+    strcpy(parsingStr, gettext("[PARSING]"));
+
+    sprintf(message, "%s %s", parsingStr, cleanedFileName);
     gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
     gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, message);
   }
