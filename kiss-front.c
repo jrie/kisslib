@@ -142,7 +142,9 @@ bool get_db_answer_value(struct dbAnswer*, const char[], char**);
 
 //------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-  setlocale( LC_ALL, "" );
+  setlocale(LC_ALL, "");
+  // TODO: Setup the bindtextdomain to look in "/usr/share/locale" instead of current folder
+  // NOTE: Translations have to set at bindtextdomain path + "de_DE/LC_MESSAGES/KISSebook.mo" for german translation
   bindtextdomain("KISSebook", "");
   textdomain("KISSebook");
 
