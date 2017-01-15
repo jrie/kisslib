@@ -678,7 +678,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meQuit), "activate", G_CALLBACK(menuhandle_meQuit), NULL);
 
   GtkWidget *opMenu = gtk_menu_new();
-  GtkWidget *mOp = gtk_menu_item_new_with_label("Operations");
+  GtkWidget *mOp = gtk_menu_item_new_with_label(gettext("Operations"));
   GtkWidget *seperator = gtk_separator_menu_item_new();
   GtkWidget *meSetupLauncher = gtk_menu_item_new_with_label(gettext("Setup launcher applications"));
   GtkWidget *meSetLauncher = gtk_menu_item_new_with_label(gettext("Set launcher applications and parameters"));
@@ -717,7 +717,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(window), "menuImportFiles", GTK_MENU_ITEM(meImportFiles));
 
   GtkWidget *viewMenu = gtk_menu_new();
-  GtkWidget *mView = gtk_menu_item_new_with_label("View");
+  GtkWidget *mView = gtk_menu_item_new_with_label(gettext("View"));
   GtkWidget *viewColumns = gtk_menu_new();
   GtkWidget *meSubColumns = gtk_menu_item_new_with_label(gettext("Show or hide columns..."));
   GtkWidget *meShowFormat = gtk_check_menu_item_new_with_label(gettext("Format"));
@@ -756,7 +756,7 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meShowTags), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnTags);
   g_signal_connect(G_OBJECT(meShowRead), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnRead);
 
-  GtkWidget *mOptions = gtk_menu_item_new_with_label("Options");
+  GtkWidget *mOptions = gtk_menu_item_new_with_label(gettext("Options"));
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOptions);
 
   g_object_set_data(G_OBJECT(mOptions), "meShowFormat", meShowFormat);
