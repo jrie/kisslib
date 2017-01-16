@@ -190,6 +190,7 @@ int main(int argc, char *argv[]) {
     INSERT OR IGNORE INTO options VALUES(1, 'visible_columns', 'text', 'format,author'); \
     INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
     INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
+    INSERT OR IGNORE INTO options VALUES(4, 'sort_on_startup', 'int', -1); \
     ");
 
     if (dbStmt != NULL) {
@@ -202,13 +203,13 @@ int main(int argc, char *argv[]) {
         sqlite3_close(db);
 
         if (rc == SQLITE_READONLY) {
-          fprintf(stderr, "Error opening sqlite3 database for writing. Exiting.");
+          fprintf(stderr, "Error opening sqlite3 database for writing. Exiting.\n");
         }
 
         return 1;
       }
     } else {
-      fprintf(stderr, "SQL error, cant setup database...\n");
+      fprintf(stderr, "SQL out of memory error, cant setup the database. Exiting.\n");
       return 1;
     }
   }
@@ -416,7 +417,7 @@ void run(GtkApplication *app, gpointer user_data) {
   sqlite3* db = g_object_get_data(G_OBJECT(app), "db");
 
   char *dbErrorMsg = NULL;
-  int rc = sqlite3_exec(db, "SELECT format, author, title, category, tags, priority, filename, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "SELECT format, author, title, category, tags, priority, filename, read FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", dbErrorMsg);
@@ -786,7 +787,7 @@ void run(GtkApplication *app, gpointer user_data) {
 
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='visible_columns' LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='visible_columns' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot read out column setting: %s\n", dbErrorMsg);
@@ -861,7 +862,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_widget_show_all(window);
 
   //"first_startup" check
-  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='first_startup' LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='first_startup' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot read out startup setting: %s\n", dbErrorMsg);
@@ -879,6 +880,37 @@ void run(GtkApplication *app, gpointer user_data) {
   }
 
   free_db_answer(&receiveFromDb);
+
+  //----------------------------------------------------------------------------
+  //"sort_on_startup" check
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='sort_on_startup' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot read out sort on startup setting: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    char *sortOnStartup = NULL;
+
+    if (get_db_answer_value(&receiveFromDb, "value", &sortOnStartup)) {
+      int sortOnColumn = atoi(sortOnStartup);
+      if (sortOnColumn && sortOnColumn != -1 && sortOnColumn > 0 && sortOnColumn < N_COLUMNS) {
+        GtkTreeViewColumn *sortColumn = gtk_tree_view_get_column(GTK_TREE_VIEW(ebookList), sortOnColumn);
+        GList *columns = gtk_tree_view_get_columns(GTK_TREE_VIEW(ebookList));
+        int index = g_list_index(columns, (gpointer) sortColumn);
+        g_list_free(columns);
+
+        gtk_tree_view_column_set_sort_order(sortColumn, GTK_SORT_ASCENDING);
+        gtk_tree_view_column_set_sort_column_id(sortColumn, index-1);
+        gtk_tree_view_column_set_sort_indicator(sortColumn, true);
+        g_signal_emit_by_name(sortColumn, "clicked", NULL);
+      }
+    }
+
+    free(sortOnStartup);
+  }
+
+  free_db_answer(&receiveFromDb);
+
 }
 
 //------------------------------------------------------------------------------
@@ -1150,7 +1182,7 @@ void ask_setup_window_close(GtkButton *button, gpointer user_data) {
   gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
 
   char *dbErrorMsg;
-  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -1168,7 +1200,7 @@ void ask_reader_window_close(GtkButton *button, gpointer user_data) {
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
 
   char *dbErrorMsg;
-  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -1275,8 +1307,8 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
 
           if (hasReader) {
             char *dbStmt = NULL;
-            dbStmt = calloc(sizeof(char), 67 + strlen(pointer));
-            sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(%d, %d, \"%s\", NULL)", radioGroups[i]->key, radioGroups[i]->key, pointer);
+
+            dbStmt = sqlite3_mprintf("INSERT OR REPLACE INTO launcher_applications VALUES(%d, %d, '%q', NULL);", radioGroups[i]->key, radioGroups[i]->key, pointer);
 
             if (dbStmt != NULL) {
               int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -1290,7 +1322,7 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
                 sqlite3_free(dbErrorMsg);
               }
 
-              free(dbStmt);
+              sqlite3_free(dbStmt);
             }
           }
         }
@@ -1302,7 +1334,7 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
     free(radioGroups[i]->items);
   }
 
-  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -1357,8 +1389,8 @@ void open_launcher_window(GObject* menuitem) {
   char **pointerArgs = NULL;
 
   for (int i = 1; i < 5; ++i) {
-    char getHandlerStmt[73];
-    sprintf(getHandlerStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", i);
+    char getHandlerStmt[74];
+    sprintf(getHandlerStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1;", i);
 
     rc = sqlite3_exec(db, getHandlerStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
@@ -1572,8 +1604,8 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
 
   //----------------------------------------------------------------------------
   char *dbErrorMsg = NULL;
-  char clearLauncherStmt[34];
-  sprintf(clearLauncherStmt, "DELETE FROM launcher_applications");
+  char clearLauncherStmt[35];
+  sprintf(clearLauncherStmt, "DELETE FROM launcher_applications;");
 
   int rc = sqlite3_exec(db, clearLauncherStmt, NULL, NULL, &dbErrorMsg);
   if (rc != SQLITE_OK) {
@@ -1621,9 +1653,7 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
       }
     }
 
-    dbStmt = calloc(sizeof(char), 69 + strlen(handler->arguments[0]) + (args == NULL ? 0 : strlen(args)));
-    sprintf(dbStmt, "INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, \"%s\", \"%s\")", i, handler->arguments[0], (args == NULL ? "" : args));
-
+    dbStmt = sqlite3_mprintf("INSERT OR REPLACE INTO launcher_applications VALUES(NULL, %d, '%q', '%q');", i, handler->arguments[0], (args == NULL ? "" : args));
     free(args);
 
     if (dbStmt != NULL) {
@@ -1638,7 +1668,7 @@ void launcherWindow_save_data(GtkButton* button, gpointer user_data) {
         sqlite3_free(dbErrorMsg);
       }
 
-      free(dbStmt);
+      sqlite3_free(dbStmt);
     }
   }
 
@@ -1888,62 +1918,65 @@ void open_edit_window(GObject *dataItem) {
   char *dbErrorMsg = NULL;
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-  char dbStmt[83 + strlen(authorStr) + strlen(titleStr)];
-  sprintf(dbStmt, "SELECT * FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
+  char *dbStmt = sqlite3_mprintf("SELECT * FROM ebook_collection WHERE format=%d AND author='%q' AND title='%q' LIMIT 0,1;", format, authorStr, titleStr);
 
-  rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during select: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
-  } else {
-    if (receiveFromDb.count != 0) {
-      get_db_answer_value(&receiveFromDb, "path", &filePath);
-      get_db_answer_value(&receiveFromDb, "filename", &fileName);
-      get_db_answer_value(&receiveFromDb, "format", &fileFormat);
-      get_db_answer_value(&receiveFromDb, "author", &fileAuthor);
-      get_db_answer_value(&receiveFromDb, "title", &fileTitle);
-      free_db_answer(&receiveFromDb);
-    }
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during select: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      if (receiveFromDb.count != 0) {
+        get_db_answer_value(&receiveFromDb, "path", &filePath);
+        get_db_answer_value(&receiveFromDb, "filename", &fileName);
+        get_db_answer_value(&receiveFromDb, "format", &fileFormat);
+        get_db_answer_value(&receiveFromDb, "author", &fileAuthor);
+        get_db_answer_value(&receiveFromDb, "title", &fileTitle);
+        free_db_answer(&receiveFromDb);
+      }
 
-    char fileType[5];
-    if (fileFormat != NULL) {
-      switch (atoi(fileFormat)) {
-        case 1:
+      char fileType[5];
+      if (fileFormat != NULL) {
+        switch (atoi(fileFormat)) {
+          case 1:
           strcpy(fileType, "pdf");
           break;
-        case 2:
+          case 2:
           strcpy(fileType, "epub");
           break;
-        case 3:
+          case 3:
           strcpy(fileType, "mobi");
           break;
-        case 4:
+          case 4:
           strcpy(fileType, "chm");
           break;
-        default:
+          default:
           break;
+        }
+      }
+
+      if (filePath != NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entryPath), filePath);
+      }
+
+      if (fileName != NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entryFileName), fileName);
+      }
+
+      if (fileFormat != NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entryFormat), fileType);
+      }
+
+      if (fileAuthor != NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entryAuthor), fileAuthor);
+      }
+
+      if (fileTitle != NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entryTitle), fileTitle);
       }
     }
 
-    if (filePath != NULL) {
-      gtk_entry_set_text(GTK_ENTRY(entryPath), filePath);
-    }
-
-    if (fileName != NULL) {
-      gtk_entry_set_text(GTK_ENTRY(entryFileName), fileName);
-    }
-
-    if (fileFormat != NULL) {
-      gtk_entry_set_text(GTK_ENTRY(entryFormat), fileType);
-    }
-
-    if (fileAuthor != NULL) {
-      gtk_entry_set_text(GTK_ENTRY(entryAuthor), fileAuthor);
-    }
-
-    if (fileTitle != NULL) {
-      gtk_entry_set_text(GTK_ENTRY(entryTitle), fileTitle);
-    }
+    sqlite3_free(dbStmt);
   }
 
   g_free(formatStr);
@@ -2044,7 +2077,6 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
 
 
   if (strlen(titleStripped) == 0) {
-    // NOTE: Should we add a popup that a title has to be entered in order to save?
     return;
   }
 
@@ -2052,24 +2084,26 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
     sprintf(authorStripped, "Unknown");
   }
 
-  char dbStmt[91 + strlen(authorStripped) + strlen(titleStripped) + strlen(path)];
-  sprintf(dbStmt, "UPDATE ebook_collection SET author = trim(\"%s\"), title = trim(\"%s\") WHERE path == \"%s\" LIMIT 0,1", authorStripped, titleStripped, path);
+  char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = trim('%q'), title = trim('%q') WHERE path == '%s' LIMIT 0,1;", authorStripped, titleStripped, path);
 
-  rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during update: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
-  } else {
-    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
-    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
-    GtkTreeIter iter;
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during update: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+      GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+      GtkTreeIter iter;
 
-    gtk_tree_selection_get_selected(selection, &model, &iter);
-    gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, authorStripped, TITLE_COLUMN, titleStripped, -1);
+      gtk_tree_selection_get_selected(selection, &model, &iter);
+      gtk_list_store_set(dataStore, &iter, AUTHOR_COLUMN, authorStripped, TITLE_COLUMN, titleStripped, -1);
+    }
+
+    free(authorStripped);
+    free(titleStripped);
+    sqlite3_free(dbStmt);
   }
-
-  free(authorStripped);
-  free(titleStripped);
 
   gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
 
@@ -2112,7 +2146,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   GtkWidget *grid = gtk_grid_new();
   gtk_container_add(GTK_CONTAINER(box), grid);
 
-  GtkWidget *labelColumns= gtk_label_new(gettext("Visible columns:"));
+  GtkWidget *labelColumns = gtk_label_new(gettext("Visible columns:"));
   gtk_label_set_xalign(GTK_LABEL(labelColumns), 0);
   g_object_set(G_OBJECT(labelColumns), "margin-top", 0, "margin-left", 0, NULL);
   gtk_grid_attach(GTK_GRID(grid), labelColumns, 0, 0, 5, 1);
@@ -2157,6 +2191,25 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   g_object_set(G_OBJECT(importOverwrite), "margin-top", 0, "margin-left", 150, NULL);
   gtk_grid_attach(GTK_GRID(grid), importOverwrite, 7, 1, 3, 1);
 
+  GtkWidget *labelSortSelection = gtk_label_new(gettext("Sort column on startup:"));
+  gtk_label_set_xalign(GTK_LABEL(labelSortSelection), 0);
+  g_object_set(G_OBJECT(labelSortSelection), "margin-top", 0, "margin-left", 150, NULL);
+  gtk_grid_attach(GTK_GRID(grid), labelSortSelection, 7, 3, 3, 1);
+
+  GtkWidget *sortSelection = gtk_combo_box_text_new();
+  g_object_set(G_OBJECT(sortSelection), "margin", 0, "margin-left", 150, NULL);
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("None"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Format"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Author"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Title"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Category"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Tags"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Filename"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Priority"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Read"));
+  gtk_combo_box_set_active(GTK_COMBO_BOX(sortSelection), 0);
+  gtk_grid_attach(GTK_GRID(grid), sortSelection, 7, 4, 3, 1);
+
   g_signal_connect(G_OBJECT(colFormat), "toggled", G_CALLBACK(options_toggle_column), meShowFormat);
   g_signal_connect(G_OBJECT(colAuthor), "toggled", G_CALLBACK(options_toggle_column), meShowAuthor);
   g_signal_connect(G_OBJECT(colCategory), "toggled", G_CALLBACK(options_toggle_column), meShowCategory);
@@ -2188,6 +2241,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   g_object_set_data(G_OBJECT(saveButton), "meShowPriority", meShowPriority);
   g_object_set_data(G_OBJECT(saveButton), "meShowRead", meShowRead);
   g_object_set_data(G_OBJECT(saveButton), "importOverwrite", importOverwrite);
+  g_object_set_data(G_OBJECT(saveButton), "sortSelection", sortSelection);
   g_object_set_data(G_OBJECT(saveButton), "db", user_data);
 
   g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(optionsWindow_save), NULL);
@@ -2199,7 +2253,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
   int rc = 0;
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='overwrite_on_import' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error during option retrieval: %s\n", dbErrorMsg);
@@ -2210,7 +2264,29 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(importOverwrite), true);
       }
     }
+
     free(overwriteOnImport);
+    free_db_answer(&receiveFromDb);
+  }
+
+  //----------------------------------------------------------------------------
+  // Sort on startup
+  char *sortOnStartup = NULL;
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='sort_on_startup' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error during option retrieval for sorting: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    if (get_db_answer_value(&receiveFromDb, "value", &sortOnStartup)) {
+      int sortColumn = atoi(sortOnStartup);
+
+      if (sortColumn != -1) {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(sortSelection), sortColumn);
+      }
+    }
+
+    free(sortOnStartup);
     free_db_answer(&receiveFromDb);
   }
 
@@ -2240,13 +2316,18 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
   GtkCheckMenuItem *meShowFilename = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowFilename"));
   GtkCheckMenuItem *meShowPriority = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowPriority"));
   GtkCheckMenuItem *meShowRead = GTK_CHECK_MENU_ITEM(g_object_get_data(G_OBJECT(button), "meShowRead"));
+  GtkComboBox *sortSelection = GTK_COMBO_BOX(g_object_get_data(G_OBJECT(button), "sortSelection"));
   GtkToggleButton *importOverwrite = GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(button), "importOverwrite"));
 
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
+  char *dbStmt = NULL;
+  char *dbErrorMsg = NULL;
+  int rc = 0;
+
+  //----------------------------------------------------------------------------
 
   // Create the column selection string
-
-  char *visibleColumnsStm = (char*) calloc(1, sizeof(char));
+  char *visibleColumnsStmt = (char*) calloc(1, sizeof(char));
   int addedColumns = 0;
   int size = 1;
 
@@ -2293,13 +2374,13 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
 
         if (addedColumns != 0) {
           size += 1;
-          visibleColumnsStm = (char*) realloc(visibleColumnsStm, size);
-          strcat(visibleColumnsStm, ",");
+          visibleColumnsStmt = (char*) realloc(visibleColumnsStmt, size);
+          strcat(visibleColumnsStmt, ",");
         } else {
-          visibleColumnsStm = (char*) realloc(visibleColumnsStm, size);
+          visibleColumnsStmt = (char*) realloc(visibleColumnsStmt, size);
         }
 
-        strcat(visibleColumnsStm, columnName);
+        strcat(visibleColumnsStmt, columnName);
 
         ++addedColumns;
       }
@@ -2308,40 +2389,55 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
     }
   }
 
-  char dbColumnStm[69 + strlen(visibleColumnsStm)];
-  sprintf(dbColumnStm, "UPDATE options SET value='%s' WHERE option=\"visible_columns\" LIMIT 0,1", visibleColumnsStm);
-  char *dbErrorMsg = NULL;
-  int rc = 0;
+  //----------------------------------------------------------------------------
 
-  rc = sqlite3_exec(db, dbColumnStm, NULL, NULL, &dbErrorMsg);
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during save of column options: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
+  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='visible_columns' LIMIT 0,1;", visibleColumnsStmt);
+
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during save of visible column options: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
+
+    sqlite3_free(dbStmt);
   }
 
-  free(visibleColumnsStm);
+  free(visibleColumnsStmt);
   free(columnName);
 
   //----------------------------------------------------------------------------
+  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='overwrite_on_import' LIMIT 0,1;", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false"));
 
-  char overwriteStatus[6];
-  sprintf(overwriteStatus, "%s", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false") );
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during save of overwrite on import option: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
 
-  char dbOverwriteStm[73 + strlen(overwriteStatus)];
-  sprintf(dbOverwriteStm, "UPDATE options SET value='%s' WHERE option=\"overwrite_on_import\" LIMIT 0,1", overwriteStatus);
-  dbErrorMsg = NULL;
-  rc = 0;
-
-  rc = sqlite3_exec(db, dbOverwriteStm, NULL, NULL, &dbErrorMsg);
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during save of overwrite on import option: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
+    sqlite3_free(dbStmt);
   }
 
   //----------------------------------------------------------------------------
-  if (rc == SQLITE_OK) {
-    gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
+  int sortOnColumn = gtk_combo_box_get_active(GTK_COMBO_BOX(sortSelection));
+  if (sortOnColumn == 0) {
+    sortOnColumn = -1;
   }
+
+  dbStmt = sqlite3_mprintf("UPDATE options SET value=%d WHERE option='sort_on_startup' LIMIT 0,1;", sortOnColumn);
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during save of sort on startup option: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
+
+    sqlite3_free(dbStmt);
+  }
+
+  //----------------------------------------------------------------------------
+  gtk_widget_destroy(g_object_get_data(G_OBJECT(button), "rootWindow"));
 }
 
 
@@ -2464,7 +2560,7 @@ void fileChooser_importFiles(GtkButton *button, gpointer user_data) {
   int rc = 0;
   struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='overwrite_on_import' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error reading out overwrite on import option: %s\n", dbErrorMsg);
@@ -2566,7 +2662,7 @@ void clearAndUpdateDataStore(GtkListStore *dataStore, sqlite3 *db) {
 
   char *dbErrorMsg = NULL;
 
-  int rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error while restoring ebook list in clean and update functon: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
@@ -2607,7 +2703,7 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
     int rc = 0;
     struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-    rc = sqlite3_exec(db, "SELECT value FROM options WHERE option=\"overwrite_on_import\" LIMIT 0,1", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+    rc = sqlite3_exec(db, "SELECT value FROM options WHERE option='overwrite_on_import' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error reading out overwrite on import option: %s\n", dbErrorMsg);
@@ -2707,14 +2803,13 @@ void handle_launchCommand(GtkWidget* widget) {
   }
 
   GtkTreeIter iter;
+  gchar *filenameStr;
   gchar *formatStr;
-  gchar *authorStr;
-  gchar *titleStr;
 
   sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
 
   gtk_tree_selection_get_selected(selection, &model, &iter);
-  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+  gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, FILENAME_COLUMN, &filenameStr, -1);
 
   int format = 0;
   if (strcmp(formatStr, "pdf") == 0) {
@@ -2726,73 +2821,81 @@ void handle_launchCommand(GtkWidget* widget) {
   } else if (strcmp(formatStr, "chm") == 0) {
     format = 4;
   } else {
+    g_free(formatStr);
     return;
   }
+
+  g_free(formatStr);
 
   //----------------------------------------------------------------------------
   int rc = 0;
   char *dbErrorMsg = NULL;
   struct dbAnswer receiveFromDb = {0, NULL, NULL};
+  char *dbStmt = NULL;
 
   char *filePath = NULL;
   char *launcher = NULL;
   char *args = NULL;
 
   //----------------------------------------------------------------------------
-  char dbGetPathStmt[85 + strlen(authorStr) + strlen(titleStr)];
-  sprintf(dbGetPathStmt, "SELECT path FROM ebook_collection WHERE format=%d AND author=\"%s\" AND title=\"%s\" LIMIT 0,1", format, authorStr, titleStr);
+  dbStmt = sqlite3_mprintf("SELECT path FROM ebook_collection WHERE filename=='%s' LIMIT 0,1;", filenameStr);
+  g_free(filenameStr);
 
-  g_free(formatStr);
-  g_free(authorStr);
-  g_free(titleStr);
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      if (!get_db_answer_value(&receiveFromDb, "path", &filePath)) {
+        sqlite3_free(dbStmt);
+        free_db_answer(&receiveFromDb);
+        return;
+      }
 
-  rc = sqlite3_exec(db, dbGetPathStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
-  } else {
-    if (!get_db_answer_value(&receiveFromDb, "path", &filePath)) {
       free_db_answer(&receiveFromDb);
-      return;
     }
 
-    free_db_answer(&receiveFromDb);
+    sqlite3_free(dbStmt);
   }
 
   //----------------------------------------------------------------------------
-  char dbGetLauncherStmt[73];
-  sprintf(dbGetLauncherStmt, "SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1", format);
+  dbStmt = sqlite3_mprintf("SELECT program, args FROM launcher_applications WHERE format=%d LIMIT 0,1;", format);
 
-  rc = sqlite3_exec(db, dbGetLauncherStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
 
-  if (rc != SQLITE_OK) {
-    fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
-    sqlite3_free(dbErrorMsg);
-  } else {
-    if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error during selection: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      if (!get_db_answer_value(&receiveFromDb, "program", &launcher)) {
 
-      GtkWidget *statusBar = g_object_get_data(G_OBJECT(widget), "status");
-      guint contextId;
+        GtkWidget *statusBar = g_object_get_data(G_OBJECT(widget), "status");
+        guint contextId;
 
-      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
-      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+        contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Welcome");
+        gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
-      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
-      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+        contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Update");
+        gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
-      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
-      gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
+        contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
+        gtk_statusbar_remove_all(GTK_STATUSBAR(statusBar), contextId);
 
-      contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
-      gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, gettext("Please set a laucher application first to open a file."));
+        contextId = gtk_statusbar_get_context_id(GTK_STATUSBAR(statusBar), "Info");
+        gtk_statusbar_push(GTK_STATUSBAR(statusBar), contextId, gettext("Please set a laucher application first to open a file."));
 
-      free(filePath);
+        free(filePath);
+        free_db_answer(&receiveFromDb);
+        sqlite3_free(dbStmt);
+        return;
+      }
+
+      get_db_answer_value(&receiveFromDb, "args", &args);
       free_db_answer(&receiveFromDb);
-      return;
+      sqlite3_free(dbStmt);
     }
-
-    get_db_answer_value(&receiveFromDb, "args", &args);
-    free_db_answer(&receiveFromDb);
   }
 
   //----------------------------------------------------------------------------
@@ -2931,10 +3034,9 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
   if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
     GtkListStore *dataStore = g_object_get_data(G_OBJECT(widget), "dataStore");
     gchar *formatStr;
-    gchar *authorStr;
-    gchar *titleStr;
+    gchar *filenameStr;
 
-    gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, AUTHOR_COLUMN, &authorStr, TITLE_COLUMN, &titleStr, -1);
+    gtk_tree_model_get(model, &iter, FORMAT_COLUMN, &formatStr, FILENAME_COLUMN, &filenameStr, -1);
 
     int format = 0;
     if (strcmp(formatStr, "pdf") == 0) {
@@ -2950,22 +3052,24 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
     }
 
     char *dbErrorMsg = NULL;
+    char *dbStmt = NULL;
+    int rc = 0;
 
     sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
-    char stmt[90+strlen(authorStr)+strlen(titleStr)];
-    sprintf(stmt, "DELETE FROM ebook_collection WHERE format == %d AND author == \"%s\" AND title == \"%s\" LIMIT 0,1", format, authorStr, titleStr);
-    int rc = sqlite3_exec(db, stmt, NULL, NULL, &dbErrorMsg);
+    dbStmt = sqlite3_mprintf("DELETE FROM ebook_collection WHERE format == %d AND filename == '%q' LIMIT 0,1;", format, filenameStr);
+    if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while deleting: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    } else {
-      gtk_list_store_remove(dataStore, &iter);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while deleting: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      } else {
+        gtk_list_store_remove(dataStore, &iter);
+      }
     }
 
     g_free(formatStr);
-    g_free(authorStr);
-    g_free(titleStr);
+    g_free(filenameStr);
   }
 }
 
@@ -3005,7 +3109,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
     switch (searchItem) {
       default:
       case SEARCH_AUTHOR_TITLE:
-        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' OR title LIKE '%%%q%%' ORDER BY author, title ASC", searchStmt, trimmedText, trimmedText);
+        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' OR title LIKE '%%%q%%' ORDER BY author, title ASC;", searchStmt, trimmedText, trimmedText);
         break;
       case SEARCH_FORMAT:
 
@@ -3020,23 +3124,23 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
         }
 
         if (format != 0) {
-          dbStmt = sqlite3_mprintf("%s format == %d ORDER BY title ASC", searchStmt, format);
+          dbStmt = sqlite3_mprintf("%s format == %d ORDER BY title ASC;", searchStmt, format);
         }
         break;
       case SEARCH_AUTHORS:
-        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' ORDER BY author ASC", searchStmt, trimmedText);
+        dbStmt = sqlite3_mprintf("%s author LIKE '%%%q%%' ORDER BY author ASC;", searchStmt, trimmedText);
         break;
       case SEARCH_TITLE:
-        dbStmt = sqlite3_mprintf("%s title LIKE '%%%q%%' ORDER BY title ASC", searchStmt, trimmedText);
+        dbStmt = sqlite3_mprintf("%s title LIKE '%%%q%%' ORDER BY title ASC;", searchStmt, trimmedText);
         break;
       case SEARCH_CATEGORY:
-        dbStmt = sqlite3_mprintf("%s category LIKE '%%%q%%' ORDER BY category ASC", searchStmt, trimmedText);
+        dbStmt = sqlite3_mprintf("%s category LIKE '%%%q%%' ORDER BY category ASC;", searchStmt, trimmedText);
         break;
       case SEARCH_TAGS:
-        dbStmt = sqlite3_mprintf("%s tags LIKE '%%%q%%' ORDER BY tags ASC", searchStmt, trimmedText);
+        dbStmt = sqlite3_mprintf("%s tags LIKE '%%%q%%' ORDER BY tags ASC;", searchStmt, trimmedText);
         break;
       case SEARCH_FILENAME:
-        dbStmt = sqlite3_mprintf("%s filename LIKE '%%%q%%' ORDER BY filename ASC", searchStmt, trimmedText);
+        dbStmt = sqlite3_mprintf("%s filename LIKE '%%%q%%' ORDER BY filename ASC;", searchStmt, trimmedText);
         break;
     }
 
@@ -3055,7 +3159,7 @@ void search_handle_search(GtkEntry* entry, gpointer user_data) {
     }
   }
 
-  rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
+  rc = sqlite3_exec(db, "SELECT format, author, title, filename, category, tags, priority, read FROM ebook_collection;", add_db_data_to_store, (void*) dataStore, &dbErrorMsg);
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error while restoring ebook list: %s\n", dbErrorMsg);
     sqlite3_free(dbErrorMsg);
@@ -3106,7 +3210,7 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3163,7 +3267,7 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3219,7 +3323,7 @@ gboolean handle_editing_category(GtkCellRendererText *renderer, gchar *path, gch
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3274,7 +3378,7 @@ gboolean handle_editing_tags(GtkCellRendererText *renderer, gchar *path, gchar *
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%s' LIMIT 0,1", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3335,8 +3439,8 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char dbStmt[69 + strlen(filenameStr) + 3];
-    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1", (int) value, filenameStr);
+    char dbStmt[70 + strlen(filenameStr) + 3];
+    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1;", (int) value, filenameStr);
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -3370,8 +3474,8 @@ void handle_toggle_read(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char dbStmt[66 + strlen(filenameStr)];
-    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1", (bool) toggleState, filenameStr);
+    char dbStmt[67 + strlen(filenameStr)];
+    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1;", (bool) toggleState, filenameStr);
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -3552,23 +3656,24 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
     if (doOverwriteOnImport) {
       struct dbAnswer receiveFromDb = { 0, NULL, NULL };
 
-      dbStmt = (char*) calloc(60 + strlen(cleanedFileName), sizeof(char));
-      sprintf(dbStmt, "SELECT id FROM ebook_collection WHERE filename='%s' LIMIT 0,1", cleanedFileName );
-      rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+      dbStmt = sqlite3_mprintf("SELECT id FROM ebook_collection WHERE filename='%q' LIMIT 0,1;", cleanedFileName);
 
-      if (rc != SQLITE_OK) {
-        sqlite3_free(dbErrorMsg);
-      } else {
-        if (get_db_answer_value(&receiveFromDb, "id", &existingId)) {
-          hasOverwrite = true;
+      if (dbStmt != NULL) {
+        rc = sqlite3_exec(db, dbStmt, fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+        if (rc != SQLITE_OK) {
+          sqlite3_free(dbErrorMsg);
+        } else {
+          if (get_db_answer_value(&receiveFromDb, "id", &existingId)) {
+            hasOverwrite = true;
+          }
         }
-      }
 
-      free(dbStmt);
+        sqlite3_free(dbErrorMsg);
+      }
     }
 
     if (!hasOverwrite) {
-      dbStmt = sqlite3_mprintf("INSERT INTO ebook_collection VALUES (NULL,%d,'%q','%q','%q','%q',0,0,NULL,NULL)",
+      dbStmt = sqlite3_mprintf("INSERT INTO ebook_collection VALUES (NULL,%d,'%q','%q','%q','%q',0,0,NULL,NULL);",
         format,
         author == NULL ? "Unknown" : author,
         title == NULL ? cleanedFileName : title,
@@ -3576,7 +3681,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
         cleanedFileName
       );
     } else {
-      dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s LIMIT 0,1",
+      dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s LIMIT 0,1;",
         author == NULL ? "Unknown" : author,
         title == NULL ? cleanedFileName : title,
         hasCleanPath ? cleanedPath : &cleanedPath[7],
