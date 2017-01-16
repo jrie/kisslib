@@ -178,7 +178,7 @@ I try to make things happen, if possible.
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * ~~Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files~~
 * ~~Add the ability to sort by format, author and title columns~~
-* Add a option to sort by default on format, authors or title on startup
+* ~~Add a option to sort by default on format, authors or title on startup~~
 * ~~Add a search option to only show files with particular title and author~~
 * ~~Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers~~ (please propose your favorite readers by raising an issue or by email)
 * ~~Using "gettext" to make translations of the application available~~ (translation is possible now, please raise an issue or email me if you would like to make any translations of KISS Ebook
@@ -190,6 +190,7 @@ I try to make things happen, if possible.
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * ~~Add a switch of what columns to search in using the search bar~~
+* Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
