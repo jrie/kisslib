@@ -59,14 +59,14 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## Where does it work? - Tested working on...
-* Debian Sid/Unstable and Stretch/Testing "kisslib" (Tested 28.12.2016)
+* Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 28.12.2016)
 * Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (Tested 28.12.2016)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 30.12.2016)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
-* Arch OS "kisslib" binary (Tested 03.01.2017)
+* Arch OS "kisslib" binary (Tested 16.01.2017) (has known issues)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
@@ -190,7 +190,7 @@ I try to make things happen, if possible.
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * ~~Add a switch of what columns to search in using the search bar~~
-* Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default
+* ~~Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default~~ Column order can be reset in "View" > "Reset column order"
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
@@ -210,3 +210,10 @@ Using the "kisslib" binary version:
 * found another issue? (please report it or email me)
 
 
+##### Arch Linux
+
+Using the "kisslib" binary version:
+
+* The "LIMIT" clause in UPDATE and DELETE statements, which are used in KISS Ebook, are not supported in reason of compile options for sqlite(3) in Arch, some operation like delete and updates (splash screen for example) result in an SQL error which is printed in the shell for example
+
+There is a open issue in the bugtracker of Arch requesting possible support: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
