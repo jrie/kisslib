@@ -83,6 +83,7 @@ void menuhandle_setup_dialog(GtkMenuItem*, gpointer);
 void open_setup_reader_dialog(GObject*);
 
 void handle_launchCommand(GtkWidget*);
+void handle_column_change(GtkTreeView*, gpointer);
 gboolean handle_drag_data(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, gpointer);
 gboolean handle_key_press(GtkWidget*, GdkEventKey*, gpointer);
 gboolean handle_editing_author(GtkCellRendererText*, gchar*, gchar*, gpointer);
@@ -118,6 +119,7 @@ void edit_entry_close(GtkButton*, gpointer);
 void edit_entry_save_data(GtkButton*, gpointer);
 
 void menuhandle_meToggleColumn(GtkCheckMenuItem*, gpointer);
+void menuhandle_meResetColumns(GtkMenuItem*, gpointer);
 
 void menuhandle_mOptions(GtkMenuItem*, gpointer);
 void open_options_window(GObject*, gpointer);
@@ -163,6 +165,15 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Error opening sqlite3 database \"kisslib.db\" file. Exiting.");
     return 1;
   } else {
+    char columnOrder[64];
+    char indexString[3];
+    columnOrder[0] = '\0';
+
+    for (int i = 0; i < N_COLUMNS; ++i) {
+      sprintf(indexString, "%d,", i);
+      strcat(columnOrder, indexString);
+    }
+
     dbStmt = sqlite3_mprintf("CREATE TABLE IF NOT EXISTS ebook_collection ( \
         'id' INTEGER PRIMARY KEY ASC, \
         'format' INTEGER, \
@@ -191,7 +202,8 @@ int main(int argc, char *argv[]) {
       INSERT OR IGNORE INTO options VALUES(2, 'overwrite_on_import', 'bool', 'true'); \
       INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
       INSERT OR IGNORE INTO options VALUES(4, 'sort_on_startup', 'int', -1); \
-    ");
+      INSERT OR IGNORE INTO options VALUES(5, 'column_order', 'text', '%s'); \
+    ", columnOrder);
 
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -217,7 +229,8 @@ int main(int argc, char *argv[]) {
   //----------------------------------------------------------------------------
 
   app = gtk_application_new("net.dwrox.kiss", G_APPLICATION_HANDLES_OPEN);
-  g_signal_connect(app, "activate", G_CALLBACK (run), NULL);
+  g_signal_connect(app, "activate", G_CALLBACK(run), NULL);
+
   g_object_set_data(G_OBJECT(app), "db", db);
   status = g_application_run(G_APPLICATION(app), argc, argv);
 
@@ -439,9 +452,6 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_widget_set_vexpand(ebookList, true);
   gtk_window_set_focus(GTK_WINDOW(window), ebookList);
 
-  // NOTE: Add reorder option?
-  //gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ebookList), true);
-
   gtk_tree_view_set_search_column(GTK_TREE_VIEW(ebookList), TITLE_COLUMN);
   gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_GRID_LINES_BOTH);
   gtk_drag_dest_set(ebookList, GTK_DEST_DEFAULT_ALL, NULL, 0, GDK_ACTION_COPY);
@@ -531,6 +541,7 @@ void run(GtkApplication *app, gpointer user_data) {
   }
 
   g_object_set_data(G_OBJECT(window), "columnIds", columnIds);
+  g_object_set_data(G_OBJECT(app), "treeview", ebookList);
   g_object_set_data(G_OBJECT(app), "columnIds", columnIds);
   g_object_set_data(G_OBJECT(app), "dataStore", dataStore);
 
@@ -641,7 +652,8 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnRead);
 
   //----------------------------------------------------------------------------
-  // Sorting of columns
+  // Sorting of columns or highlight enabled
+  gtk_tree_view_column_set_clickable(columnOpen, true);
   gtk_tree_view_column_set_clickable(columnFormat, true);
   gtk_tree_view_column_set_clickable(columnAuthor, true);
   gtk_tree_view_column_set_clickable(columnTitle, true);
@@ -651,6 +663,18 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_column_set_clickable(columnPriority, true);
   gtk_tree_view_column_set_clickable(columnRead, true);
 
+  // Reorderable
+  gtk_tree_view_column_set_reorderable(columnOpen, true);
+  gtk_tree_view_column_set_reorderable(columnFormat, true);
+  gtk_tree_view_column_set_reorderable(columnAuthor, true);
+  gtk_tree_view_column_set_reorderable(columnTitle, true);
+  gtk_tree_view_column_set_reorderable(columnCategory, true);
+  gtk_tree_view_column_set_reorderable(columnTags, true);
+  gtk_tree_view_column_set_reorderable(columnFilename, true);
+  gtk_tree_view_column_set_reorderable(columnPriority, true);
+  gtk_tree_view_column_set_reorderable(columnRead, true);
+
+  // Column and table signals
   g_signal_connect(G_OBJECT(columnFormat), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnAuthor), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnTitle), "clicked", G_CALLBACK(handle_sort_column), ebookList);
@@ -659,6 +683,8 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(columnFilename), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnPriority), "clicked", G_CALLBACK(handle_sort_column), ebookList);
   g_signal_connect(G_OBJECT(columnRead), "clicked", G_CALLBACK(handle_sort_column), ebookList);
+
+  g_signal_connect(G_OBJECT(ebookList), "columns-changed", G_CALLBACK(handle_column_change), NULL);
 
   // The main menu -------------------------------------------------------------
   // TODO: Should the main menu use images?
@@ -728,6 +754,8 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *meShowFilename = gtk_check_menu_item_new_with_label(gettext("Filename"));
   GtkWidget *meShowPriority = gtk_check_menu_item_new_with_label(gettext("Priority"));
   GtkWidget *meShowRead = gtk_check_menu_item_new_with_label(gettext("Read state"));
+  GtkWidget *seperator_two = gtk_separator_menu_item_new();
+  GtkWidget *meResetColumns = gtk_menu_item_new_with_label(gettext("Reset column order"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mView), viewMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), meSubColumns);
@@ -739,6 +767,8 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowFilename);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowPriority);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowRead);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), seperator_two);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), meResetColumns);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mView);
 
   g_object_set_data(G_OBJECT(meShowFormat), "db", db);
@@ -756,6 +786,9 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meShowPriority), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnPriority);
   g_signal_connect(G_OBJECT(meShowTags), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnTags);
   g_signal_connect(G_OBJECT(meShowRead), "toggled", G_CALLBACK(menuhandle_meToggleColumn), columnRead);
+
+  g_signal_connect(G_OBJECT(meResetColumns), "activate", G_CALLBACK(menuhandle_meResetColumns), ebookList);
+
 
   GtkWidget *mOptions = gtk_menu_item_new_with_label(gettext("Options"));
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOptions);
@@ -907,10 +940,50 @@ void run(GtkApplication *app, gpointer user_data) {
     }
 
     free(sortOnStartup);
+    free_db_answer(&receiveFromDb);
+  }
+
+
+  //----------------------------------------------------------------------------
+  // Restore column order from database
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option == 'column_order' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, cannot read out sort on startup setting: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    char *columnOrderString = NULL;
+
+    if (get_db_answer_value(&receiveFromDb, "value", &columnOrderString)) {
+      int orderId = 0;
+      int orderIndex = 0;
+
+      GList *columns = gtk_tree_view_get_columns(GTK_TREE_VIEW(ebookList));
+      int columnsSize = g_list_length(columns)-1;
+      GtkTreeViewColumn *previousColumn;
+
+      char *orderPart = strtok(columnOrderString, ",");
+      while (orderPart != NULL) {
+        orderId = atoi(orderPart);
+
+        if (orderIndex == 0) {
+          gtk_tree_view_move_column_after(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_COLUMN(g_list_nth_data(columns, orderId)),  NULL);
+        } else if (orderId < N_COLUMNS && orderId < columnsSize) {
+          gtk_tree_view_move_column_after(GTK_TREE_VIEW(ebookList), GTK_TREE_VIEW_COLUMN(g_list_nth_data(columns, orderId)),  previousColumn);
+        }
+
+        orderPart = strtok(NULL, ",");
+        ++orderIndex;
+        previousColumn = GTK_TREE_VIEW_COLUMN(g_list_nth_data(columns, orderId));
+      }
+
+       g_list_free(columns);
+    }
+
+    free(columnOrderString);
   }
 
   free_db_answer(&receiveFromDb);
-
 }
 
 //------------------------------------------------------------------------------
@@ -1334,7 +1407,7 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
     free(radioGroups[i]->items);
   }
 
-  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1", NULL, NULL, &dbErrorMsg);
+  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -2116,6 +2189,73 @@ void menuhandle_meToggleColumn(GtkCheckMenuItem *checkmenuitem, gpointer user_da
   gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(user_data), gtk_check_menu_item_get_active(checkmenuitem));
 }
 
+//------------------------------------------------------------------------------
+
+void menuhandle_meResetColumns(GtkMenuItem *menuitem, gpointer user_data) {
+  GtkTreeView *ebookList = GTK_TREE_VIEW(user_data);
+  sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
+
+  //----------------------------------------------------------------------------
+  char columnOrder[64];
+  char indexString[3];
+  columnOrder[0] = '\0';
+
+  for (int i = 0; i < N_COLUMNS; ++i) {
+    sprintf(indexString, "%d,", i);
+    strcat(columnOrder, indexString);
+  }
+
+  GList *columns = gtk_tree_view_get_columns(GTK_TREE_VIEW(ebookList));
+  int orderIndex = 0;
+
+  GtkTreeViewColumn *previousColumn = NULL;
+  GtkTreeViewColumn *currentColumn = NULL;
+  bool hasValidColumn = false;
+
+  while(true) {
+    hasValidColumn = false;
+
+    for (GList *list = columns; list != NULL; list = list->next) {
+      if (*(int*) g_object_get_data(G_OBJECT(list->data), "id") == orderIndex) {
+        previousColumn = currentColumn;
+        hasValidColumn = true;
+        currentColumn = GTK_TREE_VIEW_COLUMN(list->data);
+        break;
+      }
+    }
+
+    if (hasValidColumn) {
+      if (previousColumn == NULL) {
+        gtk_tree_view_move_column_after(GTK_TREE_VIEW(ebookList), currentColumn,  NULL);
+      } else {
+        gtk_tree_view_move_column_after(GTK_TREE_VIEW(ebookList), currentColumn,  previousColumn);
+      }
+    }
+
+    if (orderIndex++ == N_COLUMNS) {
+      break;
+    }
+  }
+
+  g_list_free(columns);
+
+  //----------------------------------------------------------------------------
+
+  char *dbErrorMsg = NULL;
+  char *dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option == 'column_order' LIMIT 0,1;", columnOrder);
+
+  if (dbStmt != NULL) {
+    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error, cannot update column order option: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    }
+  }
+
+  return;
+}
+
 
 //------------------------------------------------------------------------------
 void menuhandle_mOptions(GtkMenuItem *menuitem, gpointer user_data) {
@@ -2673,6 +2813,45 @@ void clearAndUpdateDataStore(GtkListStore *dataStore, sqlite3 *db) {
 
 
 //------------------------------------------------------------------------------
+
+void handle_column_change(GtkTreeView *treeview, gpointer user_data) {
+  g_signal_stop_emission_by_name(treeview, "columns-changed");
+
+  GList *columns = gtk_tree_view_get_columns(GTK_TREE_VIEW(treeview));
+
+  char columnString[64];
+  char stringIndex[3];
+  columnString[0] = '\0';
+
+  if (g_list_length(columns) != N_COLUMNS) {
+    return;
+  }
+
+  for (GList *list = columns; list != NULL; list = list->next) {
+    int index = *(int*) g_object_get_data(G_OBJECT(GTK_TREE_VIEW_COLUMN(list->data)), "id");
+    sprintf(stringIndex, "%d,", index);
+    strcat(columnString, stringIndex);
+  }
+
+  g_list_free(columns);
+
+  // Update database
+  char *dbErrorMsg = NULL;
+  sqlite3 *db = g_object_get_data(G_OBJECT(treeview), "db");
+
+  char *dbStmt = sqlite3_mprintf("UPDATE options SET value = '%s' WHERE option == 'column_order' LIMIT 0,1;", columnString);
+
+  if (dbStmt != NULL) {
+    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    sqlite3_free(dbStmt);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while updating column order: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+      sqlite3_close(db);
+    }
+  }
+}
 
 gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gint y, GtkSelectionData *selData, guint time, gpointer user_data) {
   sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
