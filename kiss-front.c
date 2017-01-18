@@ -2241,7 +2241,8 @@ void menuhandle_meResetColumns(GtkMenuItem *menuitem, gpointer user_data) {
   //----------------------------------------------------------------------------
 
   char *dbErrorMsg = NULL;
-  char *dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option == 'column_order' LIMIT 0,1;", columnOrder);
+  //char *dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option == 'column_order' LIMIT 0,1;", columnOrder);
+  char *dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option == 'column_order';", columnOrder);
 
   if (dbStmt != NULL) {
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -2531,7 +2532,8 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
 
   //----------------------------------------------------------------------------
 
-  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='visible_columns' LIMIT 0,1;", visibleColumnsStmt);
+  //dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='visible_columns' LIMIT 0,1;", visibleColumnsStmt);
+  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='visible_columns';", visibleColumnsStmt);
 
   if (dbStmt != NULL) {
     rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -2547,7 +2549,8 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
   free(columnName);
 
   //----------------------------------------------------------------------------
-  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='overwrite_on_import' LIMIT 0,1;", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false"));
+  //dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='overwrite_on_import' LIMIT 0,1;", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false"));
+  dbStmt = sqlite3_mprintf("UPDATE options SET value='%s' WHERE option='overwrite_on_import';", (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(importOverwrite)) == true ? "true" : "false"));
 
   if (dbStmt != NULL) {
     rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -2565,7 +2568,8 @@ void optionsWindow_save(GtkButton *button, gpointer user_data) {
     sortOnColumn = -1;
   }
 
-  dbStmt = sqlite3_mprintf("UPDATE options SET value=%d WHERE option='sort_on_startup' LIMIT 0,1;", sortOnColumn);
+  //dbStmt = sqlite3_mprintf("UPDATE options SET value=%d WHERE option='sort_on_startup' LIMIT 0,1;", sortOnColumn);
+  dbStmt = sqlite3_mprintf("UPDATE options SET value=%d WHERE option='sort_on_startup';", sortOnColumn);
   if (dbStmt != NULL) {
     rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
     if (rc != SQLITE_OK) {
@@ -2837,7 +2841,8 @@ void handle_column_change(GtkTreeView *treeview, gpointer user_data) {
   char *dbErrorMsg = NULL;
   sqlite3 *db = g_object_get_data(G_OBJECT(treeview), "db");
 
-  char *dbStmt = sqlite3_mprintf("UPDATE options SET value = '%s' WHERE option == 'column_order' LIMIT 0,1;", columnString);
+  //char *dbStmt = sqlite3_mprintf("UPDATE options SET value = '%s' WHERE option == 'column_order' LIMIT 0,1;", columnString);
+  char *dbStmt = sqlite3_mprintf("UPDATE options SET value = '%s' WHERE option == 'column_order';", columnString);
 
   if (dbStmt != NULL) {
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
@@ -3235,7 +3240,8 @@ void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
     int rc = 0;
 
     sqlite3 *db = g_object_get_data(G_OBJECT(widget), "db");
-    dbStmt = sqlite3_mprintf("DELETE FROM ebook_collection WHERE format == %d AND filename == '%q' LIMIT 0,1;", format, filenameStr);
+    //dbStmt = sqlite3_mprintf("DELETE FROM ebook_collection WHERE format == %d AND filename == '%q' LIMIT 0,1;", format, filenameStr);
+    dbStmt = sqlite3_mprintf("DELETE FROM ebook_collection WHERE format == %d AND filename == '%q';", format, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3389,7 +3395,8 @@ gboolean handle_editing_author(GtkCellRendererText *renderer, gchar *path, gchar
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3446,7 +3453,8 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3502,7 +3510,8 @@ gboolean handle_editing_category(GtkCellRendererText *renderer, gchar *path, gch
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3557,7 +3566,8 @@ gboolean handle_editing_tags(GtkCellRendererText *renderer, gchar *path, gchar *
       stringValue = defaultValue;
     }
 
-    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%q' LIMIT 0,1;", stringValue, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
@@ -3619,7 +3629,8 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
     char dbStmt[70 + strlen(filenameStr) + 3];
-    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1;", (int) value, filenameStr);
+    //sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1;", (int) value, filenameStr);
+    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s';", (int) value, filenameStr);
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -3654,7 +3665,8 @@ void handle_toggle_read(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
     char dbStmt[67 + strlen(filenameStr)];
-    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1;", (bool) toggleState, filenameStr);
+    //sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1;", (bool) toggleState, filenameStr);
+    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s';", (bool) toggleState, filenameStr);
     int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
     if (rc != SQLITE_OK) {
@@ -3860,7 +3872,8 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
         cleanedFileName
       );
     } else {
-      dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s LIMIT 0,1;",
+      //dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s LIMIT 0,1;",
+      dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author='%q', title='%q', path='%q' WHERE id==%s;",
         author == NULL ? "Unknown" : author,
         title == NULL ? cleanedFileName : title,
         hasCleanPath ? cleanedPath : &cleanedPath[7],
