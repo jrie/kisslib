@@ -530,7 +530,10 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkIconTheme *iconTheme = gtk_icon_theme_get_default();
   GError *iconError = NULL;
   GtkIconInfo *infoOpenIcon = gtk_icon_theme_lookup_icon(iconTheme, "document-open", 24, GTK_ICON_LOOKUP_NO_SVG);
-  GdkPixbuf *infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
+  GdkPixbuf *infoIcon = NULL;
+  if (infoOpenIcon != NULL) {
+    infoIcon = gtk_icon_info_load_icon(infoOpenIcon, &iconError);
+  }
 
   //----------------------------------------------------------------------------
 
@@ -547,22 +550,21 @@ void run(GtkApplication *app, gpointer user_data) {
 
   //----------------------------------------------------------------------------
 
-  GtkTreeViewColumn *columnOpen = NULL;
-
-  if (infoIcon == NULL) {
-    fprintf(stderr, "Icon loading error: %u - %d -%s\n", iconError->domain, iconError->code, iconError->message);
-    g_error_free(iconError);
-  } else {
-    GtkCellRenderer *imageRenderer = gtk_cell_renderer_pixbuf_new();
+  GtkCellRenderer *imageRenderer = NULL;
+  if (infoIcon != NULL) {
+    imageRenderer = gtk_cell_renderer_pixbuf_new();
     g_object_set(G_OBJECT(imageRenderer), "pixbuf", infoIcon, NULL);
     gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
-
-    columnOpen = gtk_tree_view_column_new_with_attributes(gettext("Open"), imageRenderer, NULL, STARTUP_COLUMN, NULL);
-    g_object_set_data(G_OBJECT(columnOpen), "id", &columnIds[0]);
-    gtk_tree_view_column_set_min_width(columnOpen, 40);
-    gtk_tree_view_column_set_resizable(columnOpen, false);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnOpen);
+  } else {
+    imageRenderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_set_padding(imageRenderer, 5, 8);
   }
+
+  GtkTreeViewColumn *columnOpen = gtk_tree_view_column_new_with_attributes(gettext("Open"), imageRenderer, NULL, STARTUP_COLUMN, NULL);
+  g_object_set_data(G_OBJECT(columnOpen), "id", &columnIds[0]);
+  gtk_tree_view_column_set_min_width(columnOpen, 40);
+  gtk_tree_view_column_set_resizable(columnOpen, false);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnOpen);
 
 
   GtkCellRenderer *ebookListFormat = gtk_cell_renderer_text_new();
@@ -733,9 +735,9 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meEditEntry), "activate", G_CALLBACK(menuhandle_meEditEntry), NULL);
 
   g_object_set_data(G_OBJECT(meImportFiles), "appWindow", window);
-  g_object_set_data(G_OBJECT(meImportFiles), "statusBar", statusBar);
+  g_object_set_data(G_OBJECT(meImportFiles), "status", statusBar);
   g_object_set_data(G_OBJECT(meImportFiles), "progressRevealer", progressRevealer);
-  g_object_set_data(G_OBJECT(meImportFiles), "progressBar", progressBar);
+  g_object_set_data(G_OBJECT(meImportFiles), "progress", progressBar);
   g_object_set_data(G_OBJECT(meImportFiles), "treeview", ebookList);
   g_object_set_data(G_OBJECT(meImportFiles), "db", db);
   g_signal_connect(G_OBJECT(meImportFiles), "activate", G_CALLBACK(menuhandle_meImportFiles), NULL);
