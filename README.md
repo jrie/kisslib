@@ -63,10 +63,10 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * Debian Jessie/Stable requires "kisslib-jessie" or related "kisslib-jessie.c" due to earlier library versions (Tested 28.12.2016)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
-* openSuse Tumbleweed (Tested 30.12.2016)
+* openSuse Tumbleweed (Tested 18.01.2017)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
-* Arch OS "kisslib" binary (Tested 16.01.2017) (has known issues)
+* Arch OS "kisslib" binary (Tested 16.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
 
@@ -214,6 +214,6 @@ Using the "kisslib" binary version:
 
 Using the "kisslib" binary version:
 
-* The "LIMIT" clause in UPDATE and DELETE statements, which are used in KISS Ebook, are not supported in reason of compile options for sqlite(3) in Arch, some operation like delete and updates (splash screen for example) result in an SQL error which is printed in the shell for example
+~~* The "LIMIT" clause in UPDATE and DELETE statements, which are used in KISS Ebook, are not supported in reason of compile options for sqlite(3) in Arch, some operation like delete and updates (splash screen for example) result in an SQL error which is printed in the command line/shell~~
 
-There is a open issue in the bugtracker of Arch requesting possible support: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
+There is a issue in the bugtracker of Arch requesting possible support: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
