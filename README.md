@@ -65,7 +65,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 18.01.2017)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
-* Ubuntu 16.10 (Yakkety Yak) - there are known issues, its advised to compile here (Tested 01.01.2017)
+* Ubuntu 16.10 (Yakkety Yak) "kisslib" binary - there are known issues (Tested 18.01.2017)
 * Arch OS "kisslib" binary (Tested 16.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
@@ -204,9 +204,7 @@ I try to make things happen, if possible.
 
 Using the "kisslib" binary version:
 
-* The main menu is shown, but not accessible - the only work around, right now, is to use the keyboard shortcuts instead of the menus, "Ctrl-S" (Open a ebook), "Ctrl-E" (Edit ebook details), "Ctrl-W" (Set launcher dialog), "Ctrl-A" (Add files or folders dialog)
-* The open icon is not available, so the launch column is empty, but can be fully used to open an ebook when double clicking on it
-* The default GTK icons are not visible in the search bar and cannot be used as shortcuts, the search works fine so
+* The main menu "Options" is not not accessible - at the moment
 * found another issue? (please report it or email me)
 
 
@@ -215,5 +213,7 @@ Using the "kisslib" binary version:
 Using the "kisslib" binary version:
 
 ~~* The "LIMIT" clause in UPDATE and DELETE statements, which are used in KISS Ebook, are not supported in reason of compile options for sqlite(3) in Arch, some operation like delete and updates (splash screen for example) result in an SQL error which is printed in the command line/shell~~
+* found another issue? (please report it or email me)
 
-There is a issue in the bugtracker of Arch requesting possible support: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
+There is a issue in the bugtracker of Arch requesting possible support for LIMIT in UPDATE and DELETE sql statements: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
+
