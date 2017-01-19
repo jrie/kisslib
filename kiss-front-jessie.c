@@ -566,6 +566,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_tree_view_column_set_resizable(columnOpen, false);
   gtk_tree_view_append_column(GTK_TREE_VIEW(ebookList), columnOpen);
 
+
   GtkCellRenderer *ebookListFormat = gtk_cell_renderer_text_new();
   gtk_cell_renderer_set_padding(ebookListFormat, 5, 8);
 
@@ -791,18 +792,22 @@ void run(GtkApplication *app, gpointer user_data) {
   g_signal_connect(G_OBJECT(meResetColumns), "activate", G_CALLBACK(menuhandle_meResetColumns), ebookList);
 
 
+  GtkWidget *optionsMenu = gtk_menu_new();
   GtkWidget *mOptions = gtk_menu_item_new_with_label(gettext("Options"));
+  GtkWidget *mEditOptions = gtk_menu_item_new_with_label(gettext("Edit options"));
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOptions), optionsMenu);
+  gtk_menu_shell_append(GTK_MENU_SHELL(optionsMenu), mEditOptions);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOptions);
 
-  g_object_set_data(G_OBJECT(mOptions), "meShowFormat", meShowFormat);
-  g_object_set_data(G_OBJECT(mOptions), "meShowAuthor", meShowAuthor);
-  g_object_set_data(G_OBJECT(mOptions), "meShowCategory", meShowCategory);
-  g_object_set_data(G_OBJECT(mOptions), "meShowTags", meShowTags);
-  g_object_set_data(G_OBJECT(mOptions), "meShowFilename", meShowFilename);
-  g_object_set_data(G_OBJECT(mOptions), "meShowPriority", meShowPriority);
-  g_object_set_data(G_OBJECT(mOptions), "meShowRead", meShowRead);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowFormat", meShowFormat);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowAuthor", meShowAuthor);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowCategory", meShowCategory);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowTags", meShowTags);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowFilename", meShowFilename);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowPriority", meShowPriority);
+  g_object_set_data(G_OBJECT(mEditOptions), "meShowRead", meShowRead);
 
-  g_signal_connect(G_OBJECT(mOptions), "activate", G_CALLBACK(menuhandle_mOptions), db);
+  g_signal_connect(G_OBJECT(mEditOptions), "activate", G_CALLBACK(menuhandle_mOptions), db);
 
   g_object_set(G_OBJECT(menu), "margin-bottom", 12, NULL);
   gtk_container_add(GTK_CONTAINER(menuBox), menu);
@@ -2341,7 +2346,7 @@ void open_options_window(GObject *menuitem, gpointer user_data) {
 
   GtkWidget *sortSelection = gtk_combo_box_text_new();
   g_object_set(G_OBJECT(sortSelection), "margin", 0, "margin-left", 150, NULL);
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("None"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("No sorting"));
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Format"));
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Author"));
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(sortSelection), gettext("Title"));
