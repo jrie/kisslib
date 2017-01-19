@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-18 22:55+0100\n"
+"POT-Creation-Date: 2017-01-19 18:57+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,10 +29,10 @@ msgstr ""
 msgid "Author and title"
 msgstr ""
 
-#: kiss-front.c:503 kiss-front.c:573 kiss-front.c:752 kiss-front.c:1930
-#: kiss-front.c:2297 kiss-front.c:2345 kiss-front-jessie.c:503
-#: kiss-front-jessie.c:572 kiss-front-jessie.c:751 kiss-front-jessie.c:1930
-#: kiss-front-jessie.c:2297 kiss-front-jessie.c:2345
+#: kiss-front.c:503 kiss-front.c:573 kiss-front.c:752 kiss-front.c:1934
+#: kiss-front.c:2301 kiss-front.c:2349 kiss-front-jessie.c:503
+#: kiss-front-jessie.c:573 kiss-front-jessie.c:752 kiss-front-jessie.c:1935
+#: kiss-front-jessie.c:2302 kiss-front-jessie.c:2350
 msgid "Format"
 msgstr ""
 
@@ -40,28 +40,28 @@ msgstr ""
 msgid "Authors"
 msgstr ""
 
-#: kiss-front.c:505 kiss-front.c:594 kiss-front.c:1909 kiss-front.c:2347
-#: kiss-front-jessie.c:505 kiss-front-jessie.c:593 kiss-front-jessie.c:1909
-#: kiss-front-jessie.c:2347
+#: kiss-front.c:505 kiss-front.c:594 kiss-front.c:1913 kiss-front.c:2351
+#: kiss-front-jessie.c:505 kiss-front-jessie.c:594 kiss-front-jessie.c:1914
+#: kiss-front-jessie.c:2352
 msgid "Title"
 msgstr ""
 
-#: kiss-front.c:506 kiss-front.c:608 kiss-front.c:754 kiss-front.c:2307
-#: kiss-front.c:2348 kiss-front-jessie.c:506 kiss-front-jessie.c:607
-#: kiss-front-jessie.c:753 kiss-front-jessie.c:2307 kiss-front-jessie.c:2348
+#: kiss-front.c:506 kiss-front.c:608 kiss-front.c:754 kiss-front.c:2311
+#: kiss-front.c:2352 kiss-front-jessie.c:506 kiss-front-jessie.c:608
+#: kiss-front-jessie.c:754 kiss-front-jessie.c:2312 kiss-front-jessie.c:2353
 msgid "Category"
 msgstr ""
 
-#: kiss-front.c:507 kiss-front.c:618 kiss-front.c:755 kiss-front.c:2312
-#: kiss-front.c:2349 kiss-front-jessie.c:507 kiss-front-jessie.c:617
-#: kiss-front-jessie.c:754 kiss-front-jessie.c:2312 kiss-front-jessie.c:2349
+#: kiss-front.c:507 kiss-front.c:618 kiss-front.c:755 kiss-front.c:2316
+#: kiss-front.c:2353 kiss-front-jessie.c:507 kiss-front-jessie.c:618
+#: kiss-front-jessie.c:755 kiss-front-jessie.c:2317 kiss-front-jessie.c:2354
 msgid "Tags"
 msgstr ""
 
-#: kiss-front.c:508 kiss-front.c:626 kiss-front.c:756 kiss-front.c:1918
-#: kiss-front.c:2317 kiss-front.c:2350 kiss-front-jessie.c:508
-#: kiss-front-jessie.c:625 kiss-front-jessie.c:755 kiss-front-jessie.c:1918
-#: kiss-front-jessie.c:2317 kiss-front-jessie.c:2350
+#: kiss-front.c:508 kiss-front.c:626 kiss-front.c:756 kiss-front.c:1922
+#: kiss-front.c:2321 kiss-front.c:2354 kiss-front-jessie.c:508
+#: kiss-front-jessie.c:626 kiss-front-jessie.c:756 kiss-front-jessie.c:1923
+#: kiss-front-jessie.c:2322 kiss-front-jessie.c:2355
 msgid "Filename"
 msgstr ""
 
@@ -81,76 +81,80 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
-#: kiss-front.c:583 kiss-front.c:753 kiss-front.c:2302 kiss-front.c:2346
-#: kiss-front-jessie.c:582 kiss-front-jessie.c:752 kiss-front-jessie.c:2302
-#: kiss-front-jessie.c:2346
+#: kiss-front.c:583 kiss-front.c:753 kiss-front.c:2306 kiss-front.c:2350
+#: kiss-front-jessie.c:583 kiss-front-jessie.c:753 kiss-front-jessie.c:2307
+#: kiss-front-jessie.c:2351
 msgid "Author"
 msgstr ""
 
-#: kiss-front.c:639 kiss-front.c:757 kiss-front.c:2322 kiss-front.c:2351
-#: kiss-front-jessie.c:638 kiss-front-jessie.c:756 kiss-front-jessie.c:2322
-#: kiss-front-jessie.c:2351
+#: kiss-front.c:639 kiss-front.c:757 kiss-front.c:2326 kiss-front.c:2355
+#: kiss-front-jessie.c:639 kiss-front-jessie.c:757 kiss-front-jessie.c:2327
+#: kiss-front-jessie.c:2356
 msgid "Priority"
 msgstr ""
 
-#: kiss-front.c:648 kiss-front.c:2352 kiss-front-jessie.c:647
-#: kiss-front-jessie.c:2352
+#: kiss-front.c:648 kiss-front.c:2356 kiss-front-jessie.c:648
+#: kiss-front-jessie.c:2357
 msgid "Read"
 msgstr ""
 
-#: kiss-front.c:698 kiss-front-jessie.c:697
+#: kiss-front.c:698 kiss-front-jessie.c:698
 msgid "Main"
 msgstr ""
 
-#: kiss-front.c:699 kiss-front-jessie.c:698
+#: kiss-front.c:699 kiss-front-jessie.c:699
 msgid "Quit"
 msgstr ""
 
-#: kiss-front.c:710 kiss-front-jessie.c:709
+#: kiss-front.c:710 kiss-front-jessie.c:710
 msgid "Operations"
 msgstr ""
 
-#: kiss-front.c:712 kiss-front-jessie.c:711
+#: kiss-front.c:712 kiss-front-jessie.c:712
 msgid "Setup launcher applications"
 msgstr ""
 
-#: kiss-front.c:713 kiss-front-jessie.c:712
+#: kiss-front.c:713 kiss-front-jessie.c:713
 msgid "Set launcher applications and parameters"
 msgstr ""
 
-#: kiss-front.c:714 kiss-front-jessie.c:713
+#: kiss-front.c:714 kiss-front-jessie.c:714
 msgid "Import files and folders"
 msgstr ""
 
-#: kiss-front.c:715 kiss-front-jessie.c:714
+#: kiss-front.c:715 kiss-front-jessie.c:715
 msgid "Edit ebook details"
 msgstr ""
 
-#: kiss-front.c:749 kiss-front-jessie.c:748
+#: kiss-front.c:749 kiss-front-jessie.c:749
 msgid "View"
 msgstr ""
 
-#: kiss-front.c:751 kiss-front-jessie.c:750
+#: kiss-front.c:751 kiss-front-jessie.c:751
 msgid "Show or hide columns..."
 msgstr ""
 
-#: kiss-front.c:758 kiss-front-jessie.c:757
+#: kiss-front.c:758 kiss-front-jessie.c:758
 msgid "Read state"
 msgstr ""
 
-#: kiss-front.c:760 kiss-front-jessie.c:759
+#: kiss-front.c:760 kiss-front-jessie.c:760
 msgid "Reset column order"
 msgstr ""
 
-#: kiss-front.c:795 kiss-front-jessie.c:794
+#: kiss-front.c:796 kiss-front-jessie.c:796
 msgid "Options"
 msgstr ""
 
-#: kiss-front.c:997 kiss-front-jessie.c:996
+#: kiss-front.c:797 kiss-front-jessie.c:797
+msgid "Edit options"
+msgstr ""
+
+#: kiss-front.c:1001 kiss-front-jessie.c:1001
 msgid "KISS Ebook Starter - Setup"
 msgstr ""
 
-#: kiss-front.c:1004 kiss-front-jessie.c:1003
+#: kiss-front.c:1008 kiss-front-jessie.c:1008
 msgid ""
 "It's the first time you start KISS Ebook.\n"
 "\n"
@@ -167,54 +171,54 @@ msgid ""
 "\"Operations\" > \"Setup launcher applications\"."
 msgstr ""
 
-#: kiss-front.c:1016 kiss-front-jessie.c:1015
+#: kiss-front.c:1020 kiss-front-jessie.c:1020
 msgid "No, thank you."
 msgstr ""
 
-#: kiss-front.c:1022 kiss-front-jessie.c:1021
+#: kiss-front.c:1026 kiss-front-jessie.c:1026
 msgid "Please help me!"
 msgstr ""
 
-#: kiss-front.c:1042 kiss-front.c:1301 kiss-front-jessie.c:1041
-#: kiss-front-jessie.c:1300
+#: kiss-front.c:1046 kiss-front.c:1305 kiss-front-jessie.c:1046
+#: kiss-front-jessie.c:1305
 msgid "Calibre"
 msgstr ""
 
-#: kiss-front.c:1044 kiss-front.c:1303 kiss-front-jessie.c:1043
-#: kiss-front-jessie.c:1302
+#: kiss-front.c:1048 kiss-front.c:1307 kiss-front-jessie.c:1048
+#: kiss-front-jessie.c:1307
 msgid "Cool Reader 3"
 msgstr ""
 
-#: kiss-front.c:1046 kiss-front.c:1305 kiss-front-jessie.c:1045
-#: kiss-front-jessie.c:1304
+#: kiss-front.c:1050 kiss-front.c:1309 kiss-front-jessie.c:1050
+#: kiss-front-jessie.c:1309
 msgid "Evince - Document Viewer"
 msgstr ""
 
-#: kiss-front.c:1048 kiss-front.c:1307 kiss-front-jessie.c:1047
-#: kiss-front-jessie.c:1306
+#: kiss-front.c:1052 kiss-front.c:1311 kiss-front-jessie.c:1052
+#: kiss-front-jessie.c:1311
 msgid "Easy eBook Viewer"
 msgstr ""
 
-#: kiss-front.c:1050 kiss-front.c:1309 kiss-front-jessie.c:1049
-#: kiss-front-jessie.c:1308
+#: kiss-front.c:1054 kiss-front.c:1313 kiss-front-jessie.c:1054
+#: kiss-front-jessie.c:1313
 msgid "FBReader ebook reader"
 msgstr ""
 
-#: kiss-front.c:1052 kiss-front.c:1311 kiss-front-jessie.c:1051
-#: kiss-front-jessie.c:1310
+#: kiss-front.c:1056 kiss-front.c:1315 kiss-front-jessie.c:1056
+#: kiss-front-jessie.c:1315
 msgid "LUCIDOR ebook reader"
 msgstr ""
 
-#: kiss-front.c:1054 kiss-front.c:1313 kiss-front-jessie.c:1053
-#: kiss-front-jessie.c:1312
+#: kiss-front.c:1058 kiss-front.c:1317 kiss-front-jessie.c:1058
+#: kiss-front-jessie.c:1317
 msgid "xCHM (X chm viewer)"
 msgstr ""
 
-#: kiss-front.c:1079 kiss-front-jessie.c:1078
+#: kiss-front.c:1083 kiss-front-jessie.c:1083
 msgid "KISS Ebook Starter - Setup launcher applications"
 msgstr ""
 
-#: kiss-front.c:1086 kiss-front-jessie.c:1085
+#: kiss-front.c:1090 kiss-front-jessie.c:1090
 msgid ""
 "Below you can see all available ebook file types in KISS Ebook.\n"
 "Additionally, a list of detected applications which are suitable for at "
@@ -232,207 +236,210 @@ msgid ""
 "and provide parameters."
 msgstr ""
 
-#: kiss-front.c:1098 kiss-front.c:2344 kiss-front-jessie.c:1097
-#: kiss-front-jessie.c:2344
+#: kiss-front.c:1102 kiss-front-jessie.c:1102
 msgid "None"
 msgstr ""
 
-#: kiss-front.c:1102 kiss-front.c:1514 kiss-front-jessie.c:1101
-#: kiss-front-jessie.c:1513
+#: kiss-front.c:1106 kiss-front.c:1518 kiss-front-jessie.c:1106
+#: kiss-front-jessie.c:1518
 msgid "PDF file handler:"
 msgstr ""
 
-#: kiss-front.c:1113 kiss-front.c:1525 kiss-front-jessie.c:1112
-#: kiss-front-jessie.c:1524
+#: kiss-front.c:1117 kiss-front.c:1529 kiss-front-jessie.c:1117
+#: kiss-front-jessie.c:1529
 msgid "EPUB file handler:"
 msgstr ""
 
-#: kiss-front.c:1125 kiss-front.c:1536 kiss-front-jessie.c:1124
-#: kiss-front-jessie.c:1535
+#: kiss-front.c:1129 kiss-front.c:1540 kiss-front-jessie.c:1129
+#: kiss-front-jessie.c:1540
 msgid "MOBI file handler:"
 msgstr ""
 
-#: kiss-front.c:1138 kiss-front.c:1548 kiss-front-jessie.c:1137
-#: kiss-front-jessie.c:1547
+#: kiss-front.c:1142 kiss-front.c:1552 kiss-front-jessie.c:1142
+#: kiss-front-jessie.c:1552
 msgid "CHM file handler:"
 msgstr ""
 
-#: kiss-front.c:1223 kiss-front-jessie.c:1222
+#: kiss-front.c:1227 kiss-front-jessie.c:1227
 msgid "Cancel setup"
 msgstr ""
 
-#: kiss-front.c:1230 kiss-front-jessie.c:1229
+#: kiss-front.c:1234 kiss-front-jessie.c:1234
 msgid "Save selections"
 msgstr ""
 
-#: kiss-front.c:1441 kiss-front-jessie.c:1440
+#: kiss-front.c:1445 kiss-front-jessie.c:1445
 msgid "KISS Ebook Starter - Set launcher applications"
 msgstr ""
 
-#: kiss-front.c:1521 kiss-front-jessie.c:1520
+#: kiss-front.c:1525 kiss-front-jessie.c:1525
 msgid "Name of the application to launch .pdf files."
 msgstr ""
 
-#: kiss-front.c:1522 kiss-front-jessie.c:1521
+#: kiss-front.c:1526 kiss-front-jessie.c:1526
 msgid ""
 "Application and or optional parameters to open .pdf files. This could be: "
 "\"evince\" and as parameter \"-f\" to open evince in fullscreen."
 msgstr ""
 
-#: kiss-front.c:1532 kiss-front-jessie.c:1531
+#: kiss-front.c:1536 kiss-front-jessie.c:1536
 msgid "Name of the application to launch .epub files."
 msgstr ""
 
-#: kiss-front.c:1533 kiss-front-jessie.c:1532
+#: kiss-front.c:1537 kiss-front-jessie.c:1537
 msgid ""
 "Application and or optional parameters to open .epub files. This could be: "
 "\"fbreader\""
 msgstr ""
 
-#: kiss-front.c:1543 kiss-front-jessie.c:1542
+#: kiss-front.c:1547 kiss-front-jessie.c:1547
 msgid "Name of the application to launch .mobi files."
 msgstr ""
 
-#: kiss-front.c:1544 kiss-front-jessie.c:1543
+#: kiss-front.c:1548 kiss-front-jessie.c:1548
 msgid ""
 "Application and or optional parameters to open .mobi files. This could be: "
 "\"cr3\" for Cool Reader 3"
 msgstr ""
 
-#: kiss-front.c:1555 kiss-front-jessie.c:1554
+#: kiss-front.c:1559 kiss-front-jessie.c:1559
 msgid "Name of the application to launch .chm files."
 msgstr ""
 
-#: kiss-front.c:1556 kiss-front-jessie.c:1555
+#: kiss-front.c:1560 kiss-front-jessie.c:1560
 msgid ""
 "Application and optional parameters to open .chm files. This could be: \"xchm"
 "\""
 msgstr ""
 
-#: kiss-front.c:1631 kiss-front.c:1950 kiss-front.c:2371 kiss-front.c:2650
-#: kiss-front-jessie.c:1630 kiss-front-jessie.c:1950 kiss-front-jessie.c:2371
-#: kiss-front-jessie.c:2650
+#: kiss-front.c:1635 kiss-front.c:1954 kiss-front.c:2375 kiss-front.c:2654
+#: kiss-front-jessie.c:1635 kiss-front-jessie.c:1955 kiss-front-jessie.c:2376
+#: kiss-front-jessie.c:2655
 msgid "Cancel"
 msgstr ""
 
-#: kiss-front.c:1636 kiss-front.c:2376 kiss-front-jessie.c:1635
-#: kiss-front-jessie.c:2376
+#: kiss-front.c:1640 kiss-front.c:2380 kiss-front-jessie.c:1640
+#: kiss-front-jessie.c:2381
 msgid "Save"
 msgstr ""
 
-#: kiss-front.c:1880 kiss-front-jessie.c:1880
+#: kiss-front.c:1884 kiss-front-jessie.c:1885
 msgid "KISS Ebook Starter - Edit ebook details"
 msgstr ""
 
-#: kiss-front.c:1887 kiss-front-jessie.c:1887
+#: kiss-front.c:1891 kiss-front-jessie.c:1892
 msgid "Title:"
 msgstr ""
 
-#: kiss-front.c:1888 kiss-front-jessie.c:1888
+#: kiss-front.c:1892 kiss-front-jessie.c:1893
 msgid "Author:"
 msgstr ""
 
-#: kiss-front.c:1889 kiss-front-jessie.c:1889
+#: kiss-front.c:1893 kiss-front-jessie.c:1894
 msgid "Filename:"
 msgstr ""
 
-#: kiss-front.c:1890 kiss-front-jessie.c:1890
+#: kiss-front.c:1894 kiss-front-jessie.c:1895
 msgid "Path:"
 msgstr ""
 
-#: kiss-front.c:1891 kiss-front-jessie.c:1891
+#: kiss-front.c:1895 kiss-front-jessie.c:1896
 msgid "Format:"
 msgstr ""
 
-#: kiss-front.c:1908 kiss-front-jessie.c:1908
+#: kiss-front.c:1912 kiss-front-jessie.c:1913
 msgid "The title of the ebook displayed in KISS Ebook."
 msgstr ""
 
-#: kiss-front.c:1913 kiss-front-jessie.c:1913
+#: kiss-front.c:1917 kiss-front-jessie.c:1918
 msgid "The ebook author(s) displayed in KISS Ebook."
 msgstr ""
 
-#: kiss-front.c:1914 kiss-front-jessie.c:1914
+#: kiss-front.c:1918 kiss-front-jessie.c:1919
 msgid "Author(s)"
 msgstr ""
 
-#: kiss-front.c:1919 kiss-front-jessie.c:1919
+#: kiss-front.c:1923 kiss-front-jessie.c:1924
 msgid "The file name which is not changeable."
 msgstr ""
 
-#: kiss-front.c:1924 kiss-front-jessie.c:1924
+#: kiss-front.c:1928 kiss-front-jessie.c:1929
 msgid "Complete path"
 msgstr ""
 
-#: kiss-front.c:1925 kiss-front-jessie.c:1925
+#: kiss-front.c:1929 kiss-front-jessie.c:1930
 msgid "Complete path, including the filename. This is not changeable."
 msgstr ""
 
-#: kiss-front.c:1931 kiss-front-jessie.c:1931
+#: kiss-front.c:1935 kiss-front-jessie.c:1936
 msgid "The ebook format which is not changeable."
 msgstr ""
 
-#: kiss-front.c:1955 kiss-front-jessie.c:1955
+#: kiss-front.c:1959 kiss-front-jessie.c:1960
 msgid "Save data"
 msgstr ""
 
-#: kiss-front.c:2282 kiss-front-jessie.c:2282
+#: kiss-front.c:2286 kiss-front-jessie.c:2287
 msgid "KISS Ebook Starter - Options"
 msgstr ""
 
-#: kiss-front.c:2292 kiss-front-jessie.c:2292
+#: kiss-front.c:2296 kiss-front-jessie.c:2297
 msgid "Visible columns:"
 msgstr ""
 
-#: kiss-front.c:2327 kiss-front-jessie.c:2327
+#: kiss-front.c:2331 kiss-front-jessie.c:2332
 msgid "Read status"
 msgstr ""
 
-#: kiss-front.c:2332 kiss-front-jessie.c:2332
+#: kiss-front.c:2336 kiss-front-jessie.c:2337
 msgid "Overwrite existing on import"
 msgstr ""
 
-#: kiss-front.c:2337 kiss-front-jessie.c:2337
+#: kiss-front.c:2341 kiss-front-jessie.c:2342
 msgid "Sort column on startup:"
 msgstr ""
 
-#: kiss-front.c:2605 kiss-front-jessie.c:2605
+#: kiss-front.c:2348 kiss-front-jessie.c:2349
+msgid "No sorting"
+msgstr ""
+
+#: kiss-front.c:2609 kiss-front-jessie.c:2610
 msgid "KISS Ebook Starter - Import files and folders"
 msgstr ""
 
-#: kiss-front.c:2614 kiss-front-jessie.c:2614
+#: kiss-front.c:2618 kiss-front-jessie.c:2619
 msgid "All supported ebook formats"
 msgstr ""
 
-#: kiss-front.c:2792 kiss-front.c:2954 kiss-front-jessie.c:2793
-#: kiss-front-jessie.c:2955
+#: kiss-front.c:2796 kiss-front.c:2958 kiss-front-jessie.c:2798
+#: kiss-front-jessie.c:2960
 msgid "error."
 msgstr ""
 
-#: kiss-front.c:2792 kiss-front.c:2954 kiss-front-jessie.c:2793
-#: kiss-front-jessie.c:2955
+#: kiss-front.c:2796 kiss-front.c:2958 kiss-front-jessie.c:2798
+#: kiss-front-jessie.c:2960
 msgid "errors."
 msgstr ""
 
-#: kiss-front.c:2795 kiss-front.c:2957 kiss-front-jessie.c:2796
-#: kiss-front-jessie.c:2958
+#: kiss-front.c:2799 kiss-front.c:2961 kiss-front-jessie.c:2801
+#: kiss-front-jessie.c:2963
 msgid "[STATUS] Done importing"
 msgstr ""
 
-#: kiss-front.c:2797 kiss-front.c:2959 kiss-front-jessie.c:2798
-#: kiss-front-jessie.c:2960
+#: kiss-front.c:2801 kiss-front.c:2963 kiss-front-jessie.c:2803
+#: kiss-front-jessie.c:2965
 msgid "file"
 msgstr ""
 
-#: kiss-front.c:2797 kiss-front.c:2959 kiss-front-jessie.c:2798
-#: kiss-front-jessie.c:2960
+#: kiss-front.c:2801 kiss-front.c:2963 kiss-front-jessie.c:2803
+#: kiss-front-jessie.c:2965
 msgid "files"
 msgstr ""
 
-#: kiss-front.c:3073 kiss-front-jessie.c:3074
+#: kiss-front.c:3077 kiss-front-jessie.c:3079
 msgid "Please set a laucher application first to open a file."
 msgstr ""
 
-#: kiss-front.c:3756 kiss-front-jessie.c:3757
+#: kiss-front.c:3760 kiss-front-jessie.c:3762
 msgid "[PARSING]"
 msgstr ""
