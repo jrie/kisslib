@@ -65,7 +65,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 * CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
 * openSuse Tumbleweed (Tested 18.01.2017)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
-* Ubuntu 16.10 (Yakkety Yak) "kisslib" binary - there are known issues (Tested 18.01.2017)
+* Ubuntu 16.10 (Yakkety Yak) "kisslib" binary, working - there is just a note in "known issues" (Tested 19.01.2017)
 * Arch OS "kisslib" binary (Tested 18.01.2017)
 * your favourite Linux distro here! (please get in touch and I try to test it if it runs on your flavour)
 
@@ -204,7 +204,6 @@ I try to make things happen, if possible.
 
 Using the "kisslib" binary version:
 
-* The main menu "Options" is not not accessible - at the moment
 * The open icon "document-open" is not present in Ubuntu and is instead as icon rendered as a non checkable checkbox which can be double clicked to open an ebook, this on purpose
 * found another issue? (please report it or email me)
 
