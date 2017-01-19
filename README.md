@@ -59,10 +59,10 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## Where does it work? - Tested working on...
-* Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 18.01.2017)
-* Debian Jessie/Stable requires "kisslib-jessie" (Tested 18.01.2017)
+* Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 19.01.2017)
+* Debian Jessie/Stable requires "kisslib-jessie" (Tested 19.01.2017)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
-* CentOS 7 using "kisslib-jessie" and related files (Tested 29.12.2016)
+* CentOS 7 using "kisslib-jessie" - there is a issue with GTK+ style "oxygen-gtk" (Tested 19.01.2017)
 * openSuse Tumbleweed (Tested 18.01.2017)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
 * Ubuntu 16.10 (Yakkety Yak) "kisslib" binary, working - there is just a note in "known issues" (Tested 19.01.2017)
@@ -200,11 +200,20 @@ I try to make things happen, if possible.
 * If you upgrade from a previous version and there are any sql errors while saving the launcher applications or importing files, you most likely once need to delete the "kisslib.db" so that all sqlite tables are properly recreated (due to changes for the launcher applications and read out ebook information table) - this is a one time action, but youve got to reimport your ebooks and reenter the launcher applications after this step
 * found another issue? (please report it or email me)
 
+
 ##### Ubuntu 16.10
 
 Using the "kisslib" binary version:
 
 * The open icon "document-open" is not present in Ubuntu and is instead as icon rendered as a non checkable checkbox which can be double clicked to open an ebook, this on purpose
+* found another issue? (please report it or email me)
+
+
+##### Cent OS 7
+
+Using the "kisslib-jessie" binary version:
+
+* The sort column select box in "Options" > "Edit options" > "Sort column on startup:" - does get stuck when using GTK style "oxygen-gtk" and a mouse selection is not possible in my test, to close the selection use the "Up" or "Down" key or "Enter" in this case, other styles dont seem to be affected when tested
 * found another issue? (please report it or email me)
 
 
