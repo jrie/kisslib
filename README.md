@@ -61,7 +61,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 ## Where does it work? - Tested working on...
 * Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 19.01.2017)
 * Debian Jessie/Stable requires "kisslib-jessie" (Tested 19.01.2017)
-* Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 29.12.2016)
+* Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 21.01.2017)
 * CentOS 7 using "kisslib-jessie" - there is a issue with GTK+ style "oxygen-gtk" (Tested 19.01.2017)
 * openSuse Tumbleweed (Tested 18.01.2017)
 * Sparky linux using "kisslib" binary (Tested 30.12.2016)
@@ -163,10 +163,10 @@ If you want to link against an earlier version, you need:
 * libzip-dev/libzip2
 * libsqlite3-dev
 
-```gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib```
+```gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib-jessie```
 
-Then "chmod +x kisslib" to allow the system to execute it.
-And then run "./kisslib" to open kisslib.
+Then "chmod +x kisslib-jessie" to allow the system to execute it.
+And then run "./kisslib-jessie" to start kisslib.
 
 
 ## ToDo and future plans / Wishlist
