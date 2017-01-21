@@ -1261,7 +1261,8 @@ void ask_setup_window_close(GtkButton *button, gpointer user_data) {
   gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(button), "rootWindow")));
 
   char *dbErrorMsg;
-  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  //int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup';", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -1279,7 +1280,8 @@ void ask_reader_window_close(GtkButton *button, gpointer user_data) {
   sqlite3 *db = g_object_get_data(G_OBJECT(button), "db");
 
   char *dbErrorMsg;
-  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  //int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  int rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup';", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -1413,7 +1415,8 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
     free(radioGroups[i]->items);
   }
 
-  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  //rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup' LIMIT 0,1;", NULL, NULL, &dbErrorMsg);
+  rc = sqlite3_exec(db, "UPDATE options SET value='false' WHERE option == 'first_startup';", NULL, NULL, &dbErrorMsg);
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error, cannot set first startup done: %s\n", dbErrorMsg);
@@ -2163,7 +2166,8 @@ void edit_entry_save_data(GtkButton *button, gpointer user_data) {
     sprintf(authorStripped, "Unknown");
   }
 
-  char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = trim('%q'), title = trim('%q') WHERE path == '%s' LIMIT 0,1;", authorStripped, titleStripped, path);
+  //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = trim('%q'), title = trim('%q') WHERE path == '%s' LIMIT 0,1;", authorStripped, titleStripped, path);
+  char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET author = trim('%q'), title = trim('%q') WHERE path == '%s';", authorStripped, titleStripped, path);
 
   if (dbStmt != NULL) {
     rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
