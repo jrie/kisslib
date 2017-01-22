@@ -141,6 +141,16 @@ Shortcuts:
 * "Ctrl-W" (Set launcher dialog)
 * "Ctrl-A" (Add files or folders dialog)
 
+Default detected readers:
+* Calibre
+* evince
+* FBReader
+* Cool Reader 3
+* LUCIDOR
+* xCHM
+* Easy eBook Viewer
+* if you miss your default reader, please open an issue and I will add detection for it
+
 ## Compiling
 
 ### Requirements and compilation (kisslib non "jessie" version)
