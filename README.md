@@ -205,6 +205,7 @@ I try to make things happen, if possible.
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * ~~Add a switch of what columns to search in using the search bar~~
 * ~~Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default~~ Column order can be reset in "View" > "Reset column order"
+* Save the application window size on exit and restore it on startup
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
