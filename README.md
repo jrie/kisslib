@@ -44,9 +44,13 @@ https://www.picflash.org/gallery.php?id=9RGDIIE7K8
 
 Examples of KISS Ebook:
 
-Main interfance (dark 'Breeze' theme):
+Main interfance (dark 'Breeze' theme on Xfce):
 
-[![Screenshot of main interface with search](https://www.picflash.org/img/2016/12/31/TBffvpana7qjimmfj.png "Main interface with integrated search")] (https://www.picflash.org/viewer.php?img=ffvpana7qjimmfj.png)
+[![Screenshot of main interface with search ann all columns](https://www.picflash.org/img/2017/01/22/TBjrbd2eo990kdagf.png "Main interface with search and all available columns")] (https://www.picflash.org/viewer.php?img=jrbd2eo990kdagf.png)
+
+Setup launcher applications (one way of two):
+
+[![Screenshot of setup launcher applications](https://www.picflash.org/img/2017/01/22/TBk35pszubxxthjgm.png "Setup of launcher applications")] (https://www.picflash.org/viewer.php?img=k35pszubxxthjgm.png)
 
 Screenshot during import:
 
