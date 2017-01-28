@@ -198,7 +198,6 @@ Version 0.8.0 features:
 * ~~Add a search option to only show files with particular title and author~~
 * ~~Add a check to detect "default readers" installed, which can access particular ebook formats, which are then set as default launchers~~ (please propose your favorite readers by raising an issue or by email)
 * ~~Using "gettext" to make translations of the application available~~ (translation is possible now, please raise an issue or email me if you would like to make any translations of KISS Ebook
-* Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance" books, like red or any other choosen color, perhaps pre-defined color values to pick from
 * ~~Add the option to show/hide particular columns from the main view, for example by using a popup or in an options dialog~~
 * ~~Add tags, so ebooks can be tagged with short terms to make a search for particular books easier~~
 * ~~Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too~~
@@ -209,9 +208,11 @@ Version 0.8.0 features:
 Upcoming requests / git version implements which are not included in any other release:
 
 * ~~Save the application window size on exit and restore it on startup~~ 
+* Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance/classics" books, any other choosen color, perhaps pre-defined color values to pick from or in form of a color picker
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * Use threading for read out routines to keep the UI responsive and remove requirement of gtk_main_iteration_do of GTK
+
 
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
