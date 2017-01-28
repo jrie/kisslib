@@ -71,9 +71,16 @@ typedef struct radioGroup {
   GtkWidget **items;
 } radioGroup;
 
+typedef struct dimensions {
+  int width;
+  int height;
+} dimensions;
+
 //------------------------------------------------------------------------------
 
 void run(GtkApplication*, gpointer);
+void handle_resize(GtkWidget*, GdkRectangle*, gpointer);
+
 void ask_setup_window(sqlite3*);
 void ask_setup_window_open(GtkButton*, gpointer);
 void ask_setup_window_close(GtkButton*, gpointer);
@@ -203,6 +210,7 @@ int main(int argc, char *argv[]) {
     INSERT OR IGNORE INTO options VALUES(3, 'first_startup', 'bool', 'true'); \
     INSERT OR IGNORE INTO options VALUES(4, 'sort_on_startup', 'int', -1); \
     INSERT OR IGNORE INTO options VALUES(5, 'column_order', 'text', '%s'); \
+    INSERT OR IGNORE INTO options VALUES(6, 'window_dimensions', 'text', '640;400;'); \
     ", columnOrder);
 
     if (dbStmt != NULL) {
@@ -227,11 +235,38 @@ int main(int argc, char *argv[]) {
   }
 
   //----------------------------------------------------------------------------
+  // Read out window sizes;
+  struct dimensions *window_dimensions = malloc(sizeof(dimensions));
+
+  //----------------------------------------------------------------------------
+  struct dbAnswer receiveFromDb = { 0, NULL, NULL };
+
+  rc = sqlite3_exec(db, "SELECT value FROM options WHERE option == 'window_dimensions' LIMIT 0,1;", fill_db_answer, (void*) &receiveFromDb, &dbErrorMsg);
+
+  if (rc != SQLITE_OK) {
+    fprintf(stderr, "SQL error, could not save 'window_dimensions', error: %s\n", dbErrorMsg);
+    sqlite3_free(dbErrorMsg);
+  } else {
+    char *sizeString = NULL;
+    if (get_db_answer_value(&receiveFromDb, "value", &sizeString)) {
+      char *width = strtok(sizeString, ";");
+      char *height = strtok(NULL, ";");
+
+      window_dimensions->width = atoi(width);
+      window_dimensions->height = atoi(height);
+      free(sizeString);
+    }
+
+    free_db_answer(&receiveFromDb);
+  }
+
+  //----------------------------------------------------------------------------
 
   app = gtk_application_new("net.dwrox.kiss", G_APPLICATION_HANDLES_OPEN);
   g_signal_connect(app, "activate", G_CALLBACK(run), NULL);
 
   g_object_set_data(G_OBJECT(app), "db", db);
+  g_object_set_data(G_OBJECT(app), "window_dimensions", window_dimensions);
   status = g_application_run(G_APPLICATION(app), argc, argv);
 
   int *columnIds = g_object_get_data(G_OBJECT(app), "columnIds");
@@ -239,6 +274,20 @@ int main(int argc, char *argv[]) {
 
   g_object_unref(g_object_get_data(G_OBJECT(app), "dataStore"));
   g_object_unref(app);
+
+  // Save window sizes;
+  dbStmt = sqlite3_mprintf("UPDATE options SET value='%d;%d;' WHERE option == 'window_dimensions'", window_dimensions->width, window_dimensions->height);
+  if (dbStmt != NULL) {
+      rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error, could not save 'window_dimensions', error: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      }
+  }
+
+  sqlite3_free(dbStmt);
+
 
   // Close db
   rc = sqlite3_exec(db, "VACUUM", NULL, NULL, &dbErrorMsg);
@@ -248,6 +297,8 @@ int main(int argc, char *argv[]) {
   }
 
   sqlite3_close(db);
+
+  free(window_dimensions);
 
   return status;
 }
@@ -401,8 +452,12 @@ int add_db_data_to_store(void* dataStore, int argc, char **argv, char **columnNa
 void run(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *window = gtk_application_window_new(app);
+  g_signal_connect(G_OBJECT(window), "size-allocate", G_CALLBACK(handle_resize), app);
   gtk_window_set_title(GTK_WINDOW(window), gettext("KISS Ebook Starter"));
-  gtk_window_set_default_size(GTK_WINDOW(window), 640, 400);
+
+  struct dimensions *window_dimensions = g_object_get_data(G_OBJECT(app), "window_dimensions");
+
+  gtk_window_set_default_size(GTK_WINDOW(window), window_dimensions->width, window_dimensions->height);
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
   GtkWidget *grid = gtk_grid_new();
@@ -1038,6 +1093,19 @@ void ask_setup_window(sqlite3 *db) {
   gtk_window_set_modal(GTK_WINDOW(askSetupWindow), true);
   gtk_window_set_position(GTK_WINDOW(askSetupWindow), GTK_WIN_POS_CENTER_ON_PARENT);
 }
+
+//------------------------------------------------------------------------------
+
+void handle_resize(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data) {
+  int w, h;
+  gtk_window_get_size(GTK_WINDOW(widget), &w, &h);
+
+  struct dimensions *window_dimensions = g_object_get_data(G_OBJECT(user_data), "window_dimensions");
+  window_dimensions->width = w;
+  window_dimensions->height = h;
+}
+
+//------------------------------------------------------------------------------
 
 void open_setup_reader_dialog(GObject* dataItem) {
   gtk_widget_destroy(GTK_WIDGET(g_object_get_data(dataItem, "rootWindow")));
@@ -3467,18 +3535,16 @@ gboolean handle_editing_title(GtkCellRendererText *renderer, gchar *path, gchar 
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET title = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      sqlite3_free(dbStmt);
 
       if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
         sqlite3_free(dbErrorMsg);
-        sqlite3_free(dbStmt);
         g_free(filenameStr);
         return false;
       } else {
         gtk_list_store_set(dataStore, &iter, TITLE_COLUMN, stringValue, -1);
       }
-
-      sqlite3_free(dbStmt);
     } else {
       g_free(filenameStr);
       return false;
@@ -3524,18 +3590,16 @@ gboolean handle_editing_category(GtkCellRendererText *renderer, gchar *path, gch
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET category = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      sqlite3_free(dbStmt);
 
       if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
         sqlite3_free(dbErrorMsg);
-        sqlite3_free(dbStmt);
         g_free(filenameStr);
         return false;
       } else {
         gtk_list_store_set(dataStore, &iter, CATEGORY_COLUMN, stringValue, -1);
       }
-
-      sqlite3_free(dbStmt);
     } else {
       g_free(filenameStr);
       return false;
@@ -3580,18 +3644,16 @@ gboolean handle_editing_tags(GtkCellRendererText *renderer, gchar *path, gchar *
     char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET tags = '%q' WHERE filename == '%q';", stringValue, filenameStr);
     if (dbStmt != NULL) {
       rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+      sqlite3_free(dbStmt);
 
       if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error while updating: %s\n", dbErrorMsg);
         sqlite3_free(dbErrorMsg);
-        sqlite3_free(dbStmt);
         g_free(filenameStr);
         return false;
       } else {
         gtk_list_store_set(dataStore, &iter, TAGS_COLUMN, stringValue, -1);
       }
-
-      sqlite3_free(dbStmt);
     } else {
       g_free(filenameStr);
       return false;
@@ -3638,20 +3700,24 @@ void handle_editing_priority(GtkAdjustment *adjustment, gpointer user_data) {
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char dbStmt[70 + strlen(filenameStr) + 3];
-    //sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1;", (int) value, filenameStr);
-    sprintf(dbStmt, "UPDATE ebook_collection SET priority=%d WHERE filename == '%s';", (int) value, filenameStr);
-    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET priority=%d WHERE filename == '%s' LIMIT 0,1;", (int) value, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET priority=%d WHERE filename == '%s';", (int) value, filenameStr);
+    if (dbStmt != NULL) {
+      int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    } else {
-      gtk_list_store_set(dataStore, &iter, PRIORITY_COLUMN, (int) value, -1);
-      gtk_adjustment_set_value(adjustment, value);
+      sqlite3_free(dbStmt);
+
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating priority: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      } else {
+        gtk_list_store_set(dataStore, &iter, PRIORITY_COLUMN, (int) value, -1);
+        gtk_adjustment_set_value(adjustment, value);
+      }
+
+      g_free(filenameStr);
     }
 
-    g_free(filenameStr);
   }
 }
 
@@ -3674,20 +3740,24 @@ void handle_toggle_read(GtkCellRendererToggle *cell_renderer, gchar *path, gpoin
     char *dbErrorMsg = NULL;
     sqlite3 *db = g_object_get_data(G_OBJECT(user_data), "db");
 
-    char dbStmt[67 + strlen(filenameStr)];
-    //sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1;", (bool) toggleState, filenameStr);
-    sprintf(dbStmt, "UPDATE ebook_collection SET read=%d WHERE filename == '%s';", (bool) toggleState, filenameStr);
-    int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+    //char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET read=%d WHERE filename == '%s' LIMIT 0,1;", (bool) toggleState, filenameStr);
+    char *dbStmt = sqlite3_mprintf("UPDATE ebook_collection SET read=%d WHERE filename == '%s';", (bool) toggleState, filenameStr);
+    if (dbStmt != NULL) {
+      int rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
 
-    if (rc != SQLITE_OK) {
-      fprintf(stderr, "SQL error while updating read: %s\n", dbErrorMsg);
-      sqlite3_free(dbErrorMsg);
-    } else {
-      gtk_cell_renderer_toggle_set_active(cell_renderer, toggleState);
-      gtk_list_store_set(dataStore, &iter, READ_COLUMN, toggleState, -1);
+      sqlite3_free(dbStmt);
+
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error while updating read: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      } else {
+        gtk_cell_renderer_toggle_set_active(cell_renderer, toggleState);
+        gtk_list_store_set(dataStore, &iter, READ_COLUMN, toggleState, -1);
+      }
+
+      g_free(filenameStr);
     }
 
-    g_free(filenameStr);
   }
 }
 
@@ -3760,7 +3830,7 @@ bool read_and_add_file_to_model(char* inputFileName, bool showStatus, GtkWidget*
 
   // Update the UI ---------------------------------------------------------
   if (showStatus && statusBar != NULL) {
-    char parsingStr[64];
+    char parsingStr[128];
     strcpy(parsingStr, gettext("[PARSING]"));
 
     sprintf(message, "%s %s", parsingStr, cleanedFileName);
