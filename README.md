@@ -189,6 +189,8 @@ Striked out items are implemented already and thank you for all your feedback so
 
 I try to make things happen, if possible.
 
+Version 0.8.0 features:
+
 * ~~Introduce the usage of "content.opf" for epub reading, which includes the ebook title and the author(s)~~
 * ~~Add a option dialog, which has at least one option/setting (turned on by default) to ignore read out of already read out files~~
 * ~~Add the ability to sort by format, author and title columns~~
@@ -201,12 +203,16 @@ I try to make things happen, if possible.
 * ~~Add tags, so ebooks can be tagged with short terms to make a search for particular books easier~~
 * ~~Add a checked column for "books already read" in the overview which can set or unset a book as read and which can be filtered too~~
 * ~~Add a priority list, for example ranging from -10 to 0 to 10 in order to set a priority list, by default books should be added with 0, make this orderable like other columns~~
-* Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
-* Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * ~~Add a switch of what columns to search in using the search bar~~
 * ~~Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default~~ Column order can be reset in "View" > "Reset column order"
-* Save the application window size on exit and restore it on startup
+
+Upcoming requests / git version implements which are not included in any other release:
+
+* ~~Save the application window size on exit and restore it on startup~~ 
+* Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
+* Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * Use threading for read out routines to keep the UI responsive and remove requirement of gtk_main_iteration_do of GTK
+
 * your feedback and feature suggestions! (please open an issue or contact me by email)
 
 
