@@ -16,8 +16,9 @@
 #include <sqlite3.h>
 
 //GNU
-#include <dirent.h>
-#include <unistd.h> // access
+#include <dirent.h> // readdir, closedir
+#include <unistd.h> // access, fork, execlp
+#include <sys/stat.h>
 
 // gettext
 #include <locale.h>
@@ -156,6 +157,14 @@ int main(int argc, char *argv[]) {
   // NOTE: Translations have to set at bindtextdomain path + "de_DE/LC_MESSAGES/KISSebook.mo" for german translation
   bindtextdomain("KISSebook", "");
   textdomain("KISSebook");
+
+  char homePath[512];
+  sprintf(homePath, "%s/.kissebook", getenv("HOME"));
+  mkdir(homePath, S_IRWXU);
+  if (chdir(homePath) != 0) {
+    fprintf(stderr, "Cannot set application working directory to \"%s\", quitting.\n\n", homePath);
+    return -1;
+  }
 
   GtkApplication *app;
   int status;
