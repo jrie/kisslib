@@ -205,17 +205,19 @@ Version 0.8.0 features:
 * ~~Add a switch of what columns to search in using the search bar~~
 * ~~Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default~~ Column order can be reset in "View" > "Reset column order"
 
+Version 0.8.1 features:
+* ~~Save the application window size on exit and restore it on startup~~ 
+* ~~Creation of 'kisslib.db' in the home folder, exact location is '/home/username/.kissebook/kisslib.db'~~ 
+
 Upcoming requests / git version implements which are not included in any other release:
 
-* ~~Save the application window size on exit and restore it on startup~~ 
+Please note that not striked items are not yet implemented.
+
 * Try to set colors for particular ebook genres in the ebook overview list, for example blue for "IT" books, and any other color for "romance/classics" books, any other choosen color, perhaps pre-defined color values to pick from or in form of a color picker
 * Add parsing/read out of cover images from ebooks, showing a thumbnail in "edit ebook details" dialog
 * Add a GtkAppChooserDialog to select a launcher for a particular ebook file type
 * Use threading for read out routines to keep the UI responsive and remove requirement of gtk_main_iteration_do of GTK
-
-
 * your feedback and feature suggestions! (please open an issue or contact me by email)
-
 
 ## Known issues
 
