@@ -75,7 +75,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## I want to use it, not to compile! Heres how:
-Download "kisslib" which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
+Download "kisslib" from the "releases" page, which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
 
 * libzip4 
 * libsqlite3
@@ -91,7 +91,7 @@ chmod +x kisslib
 ### Debian Jessie or distros with older libraries
 Please see also the known issues at the bottom, as there are slight issues with this version.
 
-Download "kisslib-jessie" which is a Linux 64bit binary.
+Download "kisslib-jessie" from the "releases" page, which is a Linux 64bit binary.
 
 * libzip2
 * libsqlite3
