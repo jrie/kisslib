@@ -155,8 +155,12 @@ int main(int argc, char *argv[]) {
   setlocale(LC_ALL, "");
   // TODO: Setup the bindtextdomain to look in "/usr/share/locale" instead of current folder
   // NOTE: Translations have to set at bindtextdomain path + "de_DE/LC_MESSAGES/KISSebook.mo" for german translation
-  bindtextdomain("KISSebook", "");
+  char *localPath = malloc(2048 * sizeof(char));
+  getcwd(localPath, 2048);
+
+  bindtextdomain("KISSebook", localPath);
   textdomain("KISSebook");
+  free(localPath);
 
   char homePath[512];
   sprintf(homePath, "%s/.kissebook", getenv("HOME"));
