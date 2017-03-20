@@ -1,4 +1,4 @@
-#### Helping to translate
+## Helping to translate
 
 If you would like to translate KissEbook into your language, you are more than welcome to help!
 
