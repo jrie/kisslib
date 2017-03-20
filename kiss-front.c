@@ -153,10 +153,10 @@ bool get_db_answer_value(struct dbAnswer*, const char[], char**);
 //------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
   setlocale(LC_ALL, "");
-  // TODO: Setup the bindtextdomain to look in "/usr/share/locale" instead of current folder
-  // NOTE: Translations have to set at bindtextdomain path + "de_DE/LC_MESSAGES/KISSebook.mo" for german translation
-  char *localPath = malloc(2048 * sizeof(char));
+  // NOTE: Translations have to be placed in + "translations/de_DE/LC_MESSAGES/KISSebook.mo" for german de_DE translation
+  char *localPath = malloc(2560 * sizeof(char));
   getcwd(localPath, 2048);
+  sprintf(localPath, "%s/translations/", localPath);
 
   bindtextdomain("KISSebook", localPath);
   textdomain("KISSebook");
@@ -2741,7 +2741,7 @@ void open_importFiles_window(GObject *menuitem) {
   g_object_set_data(G_OBJECT(cancelButton), "rootWindow", fileChooserWindow);
   g_signal_connect(G_OBJECT(cancelButton), "clicked", G_CALLBACK(fileChooser_close), NULL);
 
-  GtkWidget *openButton = gtk_button_new_with_label("Open");
+  GtkWidget *openButton = gtk_button_new_with_label(gettext("Open"));
   gtk_container_add(GTK_CONTAINER(buttonBox), openButton);
   g_object_set_data(G_OBJECT(openButton), "rootWindow", fileChooserWindow);
   g_object_set_data(G_OBJECT(openButton), "fileChooser", chooser);
