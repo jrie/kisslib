@@ -1,6 +1,6 @@
 ## Helping to translate
 
-If you would like to translate KissEbook into your language, you are more than welcome to help!
+If you would like to translate KISSebook into your language, you are more than welcome to help!
 
 It shouldnt be too complicated, but you might need to read up on some things first.
 
