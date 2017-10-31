@@ -5,7 +5,7 @@ A kiss principle ebook quick launcher application for Linux systems
 
 - [What is it about?](https://github.com/jrie/kisslib#whats-is-it-about)
 - [But why? Doesnt ebook reader XY do that?](https://github.com/jrie/kisslib#but-why-there-are-tons-of-good-readers-like-xy-the-motivation-behind-kiss-ebook)
-- [Contributers] (https://github.com/jrie/kisslib#contributers)
+- [Contributers](https://github.com/jrie/kisslib#contributers)
 - [Show me! - Screenshot gallery link and previews](https://github.com/jrie/kisslib#show-me---screenshot-gallery)
 - [Where does it work? - Tested on...](https://github.com/jrie/kisslib#where-does-it-work---tested-working-on)
 - [I want to use it! - Not to compile...](https://github.com/jrie/kisslib#i-want-to-use-it-not-to-compile-heres-how)
