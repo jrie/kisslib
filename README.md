@@ -5,6 +5,7 @@ A kiss principle ebook quick launcher application for Linux systems
 
 - [What is it about?](https://github.com/jrie/kisslib#whats-is-it-about)
 - [But why? Doesnt ebook reader XY do that?](https://github.com/jrie/kisslib#but-why-there-are-tons-of-good-readers-like-xy-the-motivation-behind-kiss-ebook)
+- [Thanks to contributors] (https://github.com/jrie/kisslib#contributers)
 - [Show me! - Screenshot gallery link and previews](https://github.com/jrie/kisslib#show-me---screenshot-gallery)
 - [Where does it work? - Tested on...](https://github.com/jrie/kisslib#where-does-it-work---tested-working-on)
 - [I want to use it! - Not to compile...](https://github.com/jrie/kisslib#i-want-to-use-it-not-to-compile-heres-how)
@@ -14,7 +15,6 @@ A kiss principle ebook quick launcher application for Linux systems
 - [Compiling of the "jessie" versions, not only Debian Jessie](https://github.com/jrie/kisslib#compilation-of-the-jessie-version-not-only-debian-jessie)
 - [ToDos and future plans / Wishlist](https://github.com/jrie/kisslib#todo-and-future-plans--wishlist)
 - [Known issues](https://github.com/jrie/kisslib#known-issues)
-
 
 ## Whats is it about?
 kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files, works completely offline and helps you manage and launch your ebooks from a single place, giving you hints about the authors and tiles and the format of your ebooks.
@@ -35,6 +35,8 @@ If you see the clear icon in the search bar right, a default GTK3 icon to clear 
 
 Please also see the future plans and ToDo list of what Kiss Ebook should be able to do in the future, to aid you in managing your ebook collection(s).
 
+## Contributers
+Thanks go out to all the contributors who helped shaping Kiss Ebook and also helped so far providing translations. Without the feedback, help and suggestions of you guys, the project would not be made as is!
 
 ## Show me! - Screenshot gallery
 The screenshots are taken under Debian Stretch using Xfce desktop with default settings and the dark screenshots with Debian Sid with Xfce Breeze theme.
