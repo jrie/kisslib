@@ -1552,7 +1552,7 @@ void menuhandle_meClearEbooks(GtkMenuItem *menuitem, gpointer user_data) {
         sqlite3_free(dbErrorMsg);
       }
 
-      gtk_list_store_clear(dataStore);      
+      gtk_list_store_clear(dataStore);
     }
   }
 }
@@ -3079,7 +3079,6 @@ gboolean handle_drag_data(GtkWidget *widget, GdkDragContext *context, gint x, gi
       clearAndUpdateDataStore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(widget))), db);
     }
 
-
     char errorString[128];
     sprintf(errorString, "%u %s", filesError, filesError == 1 ? gettext("error.") : gettext("errors."));
 
@@ -3294,24 +3293,25 @@ void handle_row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeView
 }
 
 gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
-  bool pressedDelete = false;
-
   GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
 
   switch (event->keyval) {
+    case GDK_KEY_Return:
+      if ((event->state & modifiers) == GDK_CONTROL_MASK) { // Strg Pressed
+        handle_launchCommand(widget);
+      }
+      break;
     case GDK_KEY_Delete:
-      pressedDelete = true;
+      delete_selected_entry_from_db_and_store(widget);
       break;
     case GDK_KEY_s:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) { // Strg Pressed
         handle_launchCommand(widget);
-        return true;
       }
       break;
     case GDK_KEY_e:
       if ((event->state & modifiers) == GDK_CONTROL_MASK) {
         open_edit_window(G_OBJECT(widget));
-        return true;
       }
       break;
     case GDK_KEY_w:
@@ -3327,10 +3327,6 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
     default:
       return false;
       break;
-  }
-
-  if (pressedDelete) {
-    delete_selected_entry_from_db_and_store(widget);
   }
 
   return true;
