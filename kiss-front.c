@@ -118,6 +118,8 @@ void menuhandle_meQuit(GtkMenuItem*, gpointer);
 void menuhandle_meImportFiles(GtkMenuItem*, gpointer);
 void open_importFiles_window(GObject*);
 
+void menuhandle_meClearEbooks(GtkMenuItem*, gpointer);
+
 void menuhandle_meSetLauncher(GtkMenuItem*, gpointer);
 void open_launcher_window(GObject*);
 
@@ -162,7 +164,7 @@ int main(int argc, char *argv[]) {
   textdomain("KISSebook");
   free(localPath);
 
-  char homePath[512];
+  char homePath[1024];
   sprintf(homePath, "%s/.kissebook", getenv("HOME"));
   mkdir(homePath, S_IRWXU);
   if (chdir(homePath) != 0) {
@@ -776,16 +778,20 @@ void run(GtkApplication *app, gpointer user_data) {
 
   GtkWidget *opMenu = gtk_menu_new();
   GtkWidget *mOp = gtk_menu_item_new_with_label(gettext("Operations"));
-  GtkWidget *seperator = gtk_separator_menu_item_new();
+  GtkWidget *seperator_op_1 = gtk_separator_menu_item_new();
   GtkWidget *meSetupLauncher = gtk_menu_item_new_with_label(gettext("Setup launcher applications"));
+  GtkWidget *seperator_op_2 = gtk_separator_menu_item_new();
   GtkWidget *meSetLauncher = gtk_menu_item_new_with_label(gettext("Set launcher applications and parameters"));
+  GtkWidget *meClearEbooks = gtk_menu_item_new_with_label(gettext("Clear ebooks from list and database"));
   GtkWidget *meImportFiles = gtk_menu_item_new_with_label(gettext("Import files and folders"));
   GtkWidget *meEditEntry = gtk_menu_item_new_with_label(gettext("Edit ebook details"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mOp), opMenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetupLauncher);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meSetLauncher);
-  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator_op_1);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meClearEbooks);
+  gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), seperator_op_2);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meImportFiles);
   gtk_menu_shell_append(GTK_MENU_SHELL(opMenu), meEditEntry);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mOp);
@@ -796,6 +802,11 @@ void run(GtkApplication *app, gpointer user_data) {
   g_object_set_data(G_OBJECT(meSetLauncher), "appWindow", window);
   g_object_set_data(G_OBJECT(meSetLauncher), "db", db);
   g_signal_connect(G_OBJECT(meSetLauncher), "activate", G_CALLBACK(menuhandle_meSetLauncher), NULL);
+
+  g_object_set_data(G_OBJECT(meClearEbooks), "appWindow", window);
+  g_object_set_data(G_OBJECT(meClearEbooks), "treeview", ebookList);
+  g_object_set_data(G_OBJECT(meClearEbooks), "db", db);
+  g_signal_connect(G_OBJECT(meClearEbooks), "activate", G_CALLBACK(menuhandle_meClearEbooks), NULL);
 
   g_object_set_data(G_OBJECT(meEditEntry), "appWindow", window);
   g_object_set_data(G_OBJECT(meEditEntry), "treeview", ebookList);
@@ -824,7 +835,7 @@ void run(GtkApplication *app, gpointer user_data) {
   GtkWidget *meShowFilename = gtk_check_menu_item_new_with_label(gettext("Filename"));
   GtkWidget *meShowPriority = gtk_check_menu_item_new_with_label(gettext("Priority"));
   GtkWidget *meShowRead = gtk_check_menu_item_new_with_label(gettext("Read state"));
-  GtkWidget *seperator_two = gtk_separator_menu_item_new();
+  GtkWidget *seperator_view_1 = gtk_separator_menu_item_new();
   GtkWidget *meResetColumns = gtk_menu_item_new_with_label(gettext("Reset column order"));
 
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(mView), viewMenu);
@@ -837,7 +848,7 @@ void run(GtkApplication *app, gpointer user_data) {
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowFilename);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowPriority);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewColumns), meShowRead);
-  gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), seperator_two);
+  gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), seperator_view_1);
   gtk_menu_shell_append(GTK_MENU_SHELL(viewMenu), meResetColumns);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), mView);
 
@@ -1514,6 +1525,36 @@ void ask_reader_window_save(GtkButton *button, gpointer user_data) {
 void menuhandle_meQuit(GtkMenuItem *menuitem, gpointer user_data) {
   gtk_widget_destroy(GTK_WIDGET(g_object_get_data(G_OBJECT(menuitem), "appWindow")));
   g_application_quit(G_APPLICATION(g_object_get_data(G_OBJECT(menuitem), "app")));
+}
+
+
+//------------------------------------------------------------------------------
+
+void menuhandle_meClearEbooks(GtkMenuItem *menuitem, gpointer user_data) {
+  GtkTreeView *treeview = g_object_get_data(G_OBJECT(menuitem), "treeview");
+  GtkListStore *dataStore = g_object_get_data(G_OBJECT(treeview), "dataStore");
+  char *dbErrorMsg = NULL;
+  char *dbStmt = NULL;
+  int rc = 0;
+
+  sqlite3 *db = g_object_get_data(G_OBJECT(menuitem), "db");
+  dbStmt = sqlite3_mprintf("DELETE FROM ebook_collection;");
+  if (dbStmt != NULL) {
+    rc = sqlite3_exec(db, dbStmt, NULL, NULL, &dbErrorMsg);
+
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error while deleting: %s\n", dbErrorMsg);
+      sqlite3_free(dbErrorMsg);
+    } else {
+      rc = sqlite3_exec(db, "VACUUM", NULL, NULL, &dbErrorMsg);
+      if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error, could not run 'vacuum', error: %s\n", dbErrorMsg);
+        sqlite3_free(dbErrorMsg);
+      }
+
+      gtk_list_store_clear(dataStore);      
+    }
+  }
 }
 
 
@@ -3297,6 +3338,7 @@ gboolean handle_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 
 
 //------------------------------------------------------------------------------
+
 void delete_selected_entry_from_db_and_store(GtkWidget *widget) {
   GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
   GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
