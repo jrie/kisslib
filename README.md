@@ -65,8 +65,8 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## Where does it work? - Tested working on...
-* Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 19.01.2017)
-* Debian Jessie/Stable requires "kisslib-jessie" (Tested 19.01.2017)
+* Debian Sid/Unstable and Stretch/Testing "kisslib" binary (Tested 01.12.2017)
+* Debian Jessie/Stable requires "kisslib-jessie" (Tested 01.12.2017)
 * Fedora Workstation 25 - and can run with the "kisslib" binary (Tested 21.01.2017)
 * CentOS 7 using "kisslib-jessie" - there is a issue with GTK+ style "oxygen-gtk" (Tested 19.01.2017)
 * openSuse Tumbleweed (Tested 18.01.2017)
@@ -77,7 +77,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 
 
 ## I want to use it, not to compile! Heres how:
-Download "kisslib" from the "releases" page, which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution.
+Download "kisslib" from the "releases" page - note, compiling is prefered as the binaries might be slightly outdated, which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution. This gives you the english version without translations.
 
 * libzip4 
 * libsqlite3
@@ -88,7 +88,6 @@ Then give kisslib executeable permissions and start it using:
 chmod +x kisslib
 ./kisslib
 ```
-
 
 ### Debian Jessie or distros with older libraries
 Please see also the known issues at the bottom, as there are slight issues with this version.
@@ -166,6 +165,8 @@ Compile using gcc:
 
 ```gcc kisslib.c kiss-front.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib```
 
+or use "make" with the "Makefile" to compile the non-jessie version.
+
 
 Then "chmod +x kisslib" to allow the system to execute it.
 And then run "./kisslib" to open kisslib.
@@ -180,6 +181,8 @@ If you want to link against an earlier version, you need:
 * libsqlite3-dev
 
 ```gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib-jessie```
+
+or use "make -f Makefile-Jessie" which does compile the Jessie version.
 
 Then "chmod +x kisslib-jessie" to allow the system to execute it.
 And then run "./kisslib-jessie" to start kisslib.
