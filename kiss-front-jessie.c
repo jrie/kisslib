@@ -1073,7 +1073,7 @@ void ask_setup_window(sqlite3 *db) {
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askSetupWindow), askBox);
 
-  GtkWidget *labelQuestion= gtk_label_new(gettext("It's the first time you start KISS Ebook.\n\nDo you need help to setup launcher applications in order to open ebooks from inside KISS Ebook?\n\nKISS Ebook will search for suitable applications already installed on your computer.\nThen, you can select which ebook application(s) should handle which filetype.\n\nIf you want to change your selections you can, at any time, customize this applications in the menu\n\"Operations\" > \"Setup launcher applications\"."));
+  GtkWidget *labelQuestion= gtk_label_new(gettext("It's the first time you start KISS Ebook.\n\nDo you need help to setup launcher applications in order to open ebooks from inside KISS Ebook?\n\nKISS Ebook will now search for suitable applications already installed on your system.\nThen you can choose your favorite application for each filetype.\n\nIf you want to change your selections, you can, at any time, customize these applications in the menu\n\"Operations\" > \"Setup launcher applications\"."));
   g_object_set(G_OBJECT(labelQuestion), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelQuestion), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelQuestion);
@@ -1168,7 +1168,7 @@ void open_setup_reader_dialog(GObject* dataItem) {
   g_object_set(G_OBJECT(askBox), "margin", 10, NULL);
   gtk_container_add(GTK_CONTAINER(askReaderWindow), askBox);
 
-  GtkWidget *labelNote = gtk_label_new(gettext("Below you can see all available ebook file types in KISS Ebook.\nAdditionally, a list of detected applications which are suitable for at least one file type is presented.\n\nYou can choose one application for each ebook type. The application will then be used to open ebooks with this file format.\n\nAfter this initial setup, it's possible to change your selection at any time.\n\nIn case you need a more specific configuration, like a special command to start a viewer with, you can do so in\n\"Operations\" > \"Set launcher applications\"\nand provide parameters."));
+  GtkWidget *labelNote = gtk_label_new(gettext("All available ebook file types in KISS Ebook are listed below.\nAdditionally, a list of detected applications which are suitable for at least one file type is presented.\n\nYou can select one application for each ebook type. The application will then be used to open ebooks with this file format.\n\nAfter this initial setup, it's possible to change your selection at any time.\n\nA more specific configuration, like a special command for a viewer in\n\"Operations\" > \"Set launcher applications\"\nand provide parameters."));
   g_object_set(G_OBJECT(labelNote), "margin", 20, NULL);
   gtk_label_set_justify(GTK_LABEL(labelNote), GTK_JUSTIFY_CENTER);
   gtk_container_add(GTK_CONTAINER(askBox), labelNote);
@@ -1607,7 +1607,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *entryPDF = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryPDF), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryPDF), gettext("Name of the application to launch .pdf files."));
-  gtk_widget_set_tooltip_text(entryPDF, gettext("Application and or optional parameters to open .pdf files. This could be: \"evince\" and as parameter \"-f\" to open evince in fullscreen."));
+  gtk_widget_set_tooltip_text(entryPDF, gettext("Application and/or optional parameters to open .pdf files. This could be: \"evince\" and as parameter \"-f\" to run evince in fullscreen-mode."));
   gtk_container_add(GTK_CONTAINER(box), entryPDF);
 
   GtkWidget *labelEPUB = gtk_label_new(gettext("EPUB file handler:"));
@@ -1618,7 +1618,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *entryEPUB = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryEPUB), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryEPUB), gettext("Name of the application to launch .epub files."));
-  gtk_widget_set_tooltip_text(entryEPUB, gettext("Application and or optional parameters to open .epub files. This could be: \"fbreader\""));
+  gtk_widget_set_tooltip_text(entryEPUB, gettext("Application and/or optional parameters to open .epub files. This could be: \"fbreader\""));
   gtk_container_add(GTK_CONTAINER(box), entryEPUB);
 
   GtkWidget *labelMOBI = gtk_label_new(gettext("MOBI file handler:"));
@@ -1629,7 +1629,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *entryMOBI = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryMOBI), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryMOBI), gettext("Name of the application to launch .mobi files."));
-  gtk_widget_set_tooltip_text(entryMOBI, gettext("Application and or optional parameters to open .mobi files. This could be: \"cr3\" for Cool Reader 3"));
+  gtk_widget_set_tooltip_text(entryMOBI, gettext("Application and/or optional parameters to open .mobi files. This could be: \"cr3\" for Cool Reader 3"));
   gtk_container_add(GTK_CONTAINER(box), entryMOBI);
 
 
@@ -1641,7 +1641,7 @@ void open_launcher_window(GObject* menuitem) {
   GtkWidget *entryCHM = gtk_entry_new();
   gtk_entry_set_max_length(GTK_ENTRY(entryCHM), 255);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entryCHM), gettext("Name of the application to launch .chm files."));
-  gtk_widget_set_tooltip_text(entryCHM, gettext("Application and optional parameters to open .chm files. This could be: \"xchm\""));
+  gtk_widget_set_tooltip_text(entryCHM, gettext("Application and/or optional parameters to open .chm files. This could be: \"xchm\""));
   gtk_container_add(GTK_CONTAINER(box), entryCHM);
 
   if (pdfHandler != NULL) {
