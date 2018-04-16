@@ -17,7 +17,7 @@ A kiss principle ebook quick launcher application for Linux systems
 - [Known issues](https://github.com/jrie/kisslib#known-issues)
 
 ## Whats is it about?
-kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files, works completely offline and helps you manage and launch your ebooks from a single place, giving you hints about the authors and tiles and the format of your ebooks.
+kisslib aka "KISS Ebook" or "KISS Ebook Starter" is a work in progress ebook launcher supporting .pdf, .epub, .mobi, .chm ebook files, works completely offline and helps you manage and open your ebooks from a central place in customizeable viewes, giving you hints about the authors and tiles and the format of your ebooks and offering searching, sorting, labeling and other functionalities.
 
 Its not a ebook viewer of any kind, its whole purpose is to allow to quickly go through an ebook collection and launching an own defined viewer (if you like with commands) for the supported ebook types. While displaying general information about a ebook file like format, author and title.
 
@@ -79,7 +79,7 @@ And on default Xfce with base theme on Debian Testing, older screenshot without 
 ## I want to use it, not to compile! Heres how:
 Download "kisslib" from the "releases" page - note, compiling is prefered as the binaries might be slightly outdated, which is a Linux 64bit binary and install the following dependencies to run it, please note that the library names may wary on your distribution. This gives you the english version without translations.
 
-* libzip4 
+* libzip4
 * libsqlite3
 * libgtk-3-0
 
@@ -211,8 +211,8 @@ Version 0.8.0 features:
 * ~~Make the columns reorderable and save there state on exit - in addition with an option to reset the column order to default~~ Column order can be reset in "View" > "Reset column order"
 
 Version 0.8.1 features:
-* ~~Save the application window size on exit and restore it on startup~~ 
-* ~~Creation of 'kisslib.db' in the home folder, exact location is '/home/username/.kissebook/kisslib.db'~~ 
+* ~~Save the application window size on exit and restore it on startup~~
+* ~~Creation of 'kisslib.db' in the home folder, exact location is '/home/username/.kissebook/kisslib.db'~~
 
 Upcoming requests / git version implements which are not included in any other release:
 
@@ -255,4 +255,3 @@ Using the "kisslib" binary version:
 * found another issue? (please report it or email me)
 
 There is a issue in the bugtracker of Arch requesting possible support for LIMIT in UPDATE and DELETE sql statements: [Arch Bugtracker - Issue] (https://bugs.archlinux.org/task/52584)
-

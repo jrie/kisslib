@@ -13,7 +13,7 @@ COMPILER_FLAGS = -Wall -std=c99 -O3 `pkg-config --cflags gtk+-3.0`
 LINKER_FLAGS = -lzip -lsqlite3 `pkg-config --libs gtk+-3.0`
 
 #OBJ_NAME specifies the name of our exectuable
-OBJ_NAME = kisslib
+OBJ_NAME = kissebook
 
 #This is the target that compiles our executable
 all : $(OBJS)
