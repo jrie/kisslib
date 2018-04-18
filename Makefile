@@ -15,9 +15,21 @@ LINKER_FLAGS = -lzip -lsqlite3 `pkg-config --libs gtk+-3.0`
 #OBJ_NAME specifies the name of our exectuable
 OBJ_NAME = kissebook
 
+INSTALL_PATH = /usr/share/kissebook
+
 #This is the target that compiles our executable
 all : $(OBJS)
 	$(CC) $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
 
+install : all
+						mkdir $(INSTALL_PATH)
+						cp -r translations $(INSTALL_PATH)
+						cp kissebook.png $(INSTALL_PATH)
+						cp kissebook $(INSTALL_PATH)
+						cp kissebook.desktop /usr/share/applications/
 
-#gcc kisslib-jessie.c kiss-front-jessie.c -Wall -std=c99 -O3 -g `pkg-config --cflags gtk+-3.0` -lzip -lsqlite3 `pkg-config --libs gtk+-3.0` -o kisslib
+uninstall : $(INSTALL_PATH)
+								rm -R $(INSTALL_PATH)
+
+clean : $(OBJ_NAME)
+						rm kissebook

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=0.8.4
+Type=Application
+Terminal=False
+Exec=/usr/share/kissebook/kissebook
+Name=KissEbook
+Comment=KISS Ebook - A kiss principle ebook quick launcher
+Icon=/usr/share/kissebook/kissebook.png
+Categories=Application;Util;Viewer;GTK
