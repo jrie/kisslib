@@ -30,6 +30,7 @@ install : all
 
 uninstall : $(INSTALL_PATH)
 								rm -R $(INSTALL_PATH)
+								rm /usr/share/applications/kissebook.desktop
 
 clean : $(OBJ_NAME)
 						rm kissebook
